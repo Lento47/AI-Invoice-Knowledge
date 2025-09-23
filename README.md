@@ -114,17 +114,15 @@ dotnet restore
 dotnet build
 ```
 
-Add the HTTP client in `Program.cs`:
+`Program.cs` registers `AIClient` as a typed `HttpClient` with exponential backoff, jitter, and logging for retries. Timeouts, retry counts, and the FastAPI base URL can be overridden through `appsettings` values (see [Operational Guidance](docs/operations.md)). Inject and use `AIClient` in controllers or background services to access the FastAPI endpoints with cancellation support and rich error handling.
 
-```csharp
-builder.Services.AddHttpClient<AIClient>(c => c.BaseAddress = new Uri("http://localhost:8088"));
-```
+## Operations
 
-Then inject and use `AIClient` in your controllers or background services.
+Operational details (retry tuning, watchdog installation, and verification steps) are documented in [docs/operations.md](docs/operations.md).
 
 ## Next steps
 
 * Enhance OCR with layout-aware parsing.
 * Expand NLP rules and add locale-aware total extraction.
 * Broaden the dataset and labels for the classifier and predictive models.
-* Add retries, telemetry, and circuit breakers on the .NET side.
+* Add circuit breakers and application telemetry on the .NET side.
