@@ -17,12 +17,15 @@ LOGGER_NAME = "ai_invoice.api.middleware"
 
 
 def _is_authorized(header_value: str | None, config: Settings) -> bool:
-    """Constant-time compare for API key; if no key configured, allow all."""
-    if not getattr(config, "api_key", None):
-        return True
-    if header_value is None:
-        return False
-    return hmac.compare_digest(config.api_key, header_value)
+    """Constant-time compare for API key when configured."""
+
+    api_key = getattr(config, "api_key", None)
+    if api_key:
+        if header_value is None:
+            return False
+        return hmac.compare_digest(api_key, header_value)
+
+    return bool(getattr(config, "allow_anonymous", False))
 
 
 class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
@@ -64,6 +67,7 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                 "method": request.method,
                 "path": request.url.path,
                 "status_code": status_code,
+                "duration": duration,
                 "duration_ms": round(duration * 1000, 3),
             }
             self.logger.info(

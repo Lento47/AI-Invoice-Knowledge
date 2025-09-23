@@ -1,6 +1,7 @@
 """Tests for the predictive prediction endpoints."""
 
 from pathlib import Path
+import os
 import sys
 
 import pytest
@@ -10,6 +11,8 @@ from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
+
+os.environ.setdefault("API_KEY", "test-secret")
 
 from api.main import app, predict_endpoint
 from api.routers.invoices import (

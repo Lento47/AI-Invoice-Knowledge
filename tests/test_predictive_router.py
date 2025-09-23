@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import os
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -13,6 +14,8 @@ from starlette.datastructures import UploadFile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "src"))
+
+os.environ.setdefault("API_KEY", "test-secret")
 
 import ai_invoice.predictive.model as predictive_model
 from src.api.main import app
