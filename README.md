@@ -1,4 +1,3 @@
-```markdown
 # AI Invoice System
 
 This repository contains a cross-platform AI service (Python/FastAPI) and Windows-focused .NET integration for automated invoice OCR, data extraction, smart classification, and payment prediction.
@@ -167,6 +166,3 @@ Use `AIClient` in your controllers or background services once registered.
 * Expand NLP rules and add locale-aware total extraction.
 * Broaden the dataset and labels for the classifier and predictive models.
 * Add retries, telemetry, and circuit breakers on the .NET side.
-
-```
-```

@@ -1,4 +1,7 @@
+using AIInvoiceSystem.API.Licensing;
 using AIInvoiceSystem.Core;
+using AIInvoiceSystem.Core.Licensing;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Extensions.Http;
 using System.Net.Http;
@@ -15,6 +18,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var applicationName = builder.Environment.ApplicationName ?? AppDomain.CurrentDomain.FriendlyName ?? "AIInvoiceSystem";
+
+builder.Services.AddSingleton<ILicenseStore>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    return LicenseStoreFactory.CreateDefault(applicationName, loggerFactory);
+});
+builder.Services.AddSingleton<ILicenseRefresher, EnvironmentLicenseRefresher>();
+builder.Services.AddSingleton<ILicenseManager, LicenseManager>();
+builder.Services.AddHostedService<LicenseInitializationHostedService>();
+builder.Services.AddTransient<LicenseHttpMessageHandler>();
+
 builder.Services
     .AddHttpClient<AIClient>(client =>
     {
@@ -28,6 +43,7 @@ builder.Services
             client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
         }
     })
+    .AddHttpMessageHandler<LicenseHttpMessageHandler>()
     .AddPolicyHandler(RetryPolicy());
 
 var app = builder.Build();

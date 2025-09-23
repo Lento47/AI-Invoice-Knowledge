@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from ai_invoice.classify.model import (
@@ -9,6 +9,7 @@ from ai_invoice.classify.model import (
     train_from_csv_bytes,
 )
 from ai_invoice.config import settings
+from ..license_validator import LicenseClaims, ensure_feature, require_feature_flag
 from ..middleware import Dependencies
 
 router = APIRouter(prefix="/models", tags=["models"], dependencies=Dependencies)
@@ -19,12 +20,19 @@ class ClassifyIn(BaseModel):
 
 
 @router.get("/classifier/status")
-def classifier_status():
+def classifier_status(
+    claims: LicenseClaims = Depends(require_feature_flag("classify")),
+):
+    ensure_feature(claims, "classify")
     return status()
 
 
 @router.post("/classifier/train")
-async def classifier_train(file: UploadFile = File(...)):
+async def classifier_train(
+    file: UploadFile = File(...),
+    claims: LicenseClaims = Depends(require_feature_flag("train")),
+):
+    ensure_feature(claims, "train")
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
@@ -41,7 +49,11 @@ async def classifier_train(file: UploadFile = File(...)):
 
 
 @router.post("/classifier/classify")
-def classifier_classify(body: ClassifyIn):
+def classifier_classify(
+    body: ClassifyIn,
+    claims: LicenseClaims = Depends(require_feature_flag("classify")),
+):
+    ensure_feature(claims, "classify")
     if not body.text or not body.text.strip():
         raise HTTPException(status_code=400, detail="text must not be empty.")
     if settings.max_text_length and len(body.text) > settings.max_text_length:
