@@ -9,7 +9,9 @@ from ai_invoice.predictive.model import (
     train_from_csv_bytes,
 )
 
-router = APIRouter(prefix="/models/predictive", tags=["models"])
+from ..middleware import Dependencies
+
+router = APIRouter(prefix="/models/predictive", tags=["models"], dependencies=Dependencies)
 
 
 class PredictIn(BaseModel):
