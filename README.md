@@ -108,10 +108,3 @@ builder.Services.AddHttpClient<AIClient>(c => c.BaseAddress = new Uri("http://lo
 ```
 
 Then inject and use `AIClient` in your controllers or background services.
-
-## Next steps
-
-- Enhance OCR with layout-aware parsing.
-- Expand NLP rules and add locale-aware total extraction.
-- Implement model training endpoints under `/models`.
-- Add retries, telemetry, and circuit breakers on the .NET side.
