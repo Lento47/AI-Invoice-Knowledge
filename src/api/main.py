@@ -4,6 +4,9 @@ import logging
 import sys
 
 STARTUP_LOGGER = logging.getLogger("ai_invoice.api.startup")
+from ai_invoice.schemas import PredictiveResult
+
+STARTUP_LOGGER = logging.getLogger("ai_invoice.api.startup")
 
 try:
     from ai_invoice.config import settings
@@ -16,6 +19,7 @@ if not settings.api_key and not getattr(settings, "allow_anonymous", False):
         "API_KEY environment variable must be set unless ALLOW_ANONYMOUS=true. Aborting startup."
     )
     raise SystemExit(1)
+
 
 from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
 
@@ -61,8 +65,13 @@ def predict_endpoint(
     ensure_feature(claims, "predict")
     try:
         return predict_from_features(body.features)
-    except HTTPException:
-        raise
+try:
+    return predict_from_features(body.features)
+except HTTPException:
+    raise
+except ValueError as exc:
+    raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     except ValueError as exc:
         # Mirror behavior in the invoices router for invalid feature payloads
         raise HTTPException(status_code=400, detail=str(exc)) from exc

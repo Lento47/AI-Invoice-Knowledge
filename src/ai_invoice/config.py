@@ -136,13 +136,18 @@ class Settings:
     # Model paths
     classifier_path: str = field(default_factory=lambda: os.getenv("CLASSIFIER_PATH", "models/classifier.joblib"))
     predictive_path: str = field(default_factory=lambda: os.getenv("PREDICTIVE_PATH", "models/predictive.joblib"))
+# Auth
+api_key: Optional[str] = field(default_factory=_get_api_key)
+# Explicit opt-out switch so devs must choose to run without an API key.
+allow_anonymous: bool = field(default_factory=lambda: _get_bool_env("ALLOW_ANONYMOUS", False))
 
-    # Auth
-    api_key: Optional[str] = field(default_factory=_get_api_key)
-    # Explicit opt-out switch so devs must choose to run without an API key.
-    allow_anonymous: bool = field(default_factory=lambda: _get_bool_env("ALLOW_ANONYMOUS", False))
+# License
+license_public_key_path: Optional[str] = field(
+    default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY_PATH", "keys/license_public.pem")
+)
 
-    # Request validation
+# Request validation
+
     max_upload_bytes: int = field(default_factory=lambda: _get_int_env("MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
     max_text_length: int = field(default_factory=lambda: _get_int_env("MAX_TEXT_LENGTH", 20_000))
     max_feature_fields: int = field(default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50))

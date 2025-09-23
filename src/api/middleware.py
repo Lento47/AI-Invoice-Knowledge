@@ -249,4 +249,4 @@ def configure_middleware(app: FastAPI) -> None:
 
 
 # Convenience list for route-level dependency injection if desired:
-Dependencies = [Depends(require_api_key)]
+Dependencies = [Depends(require_api_key), Depends(require_license_token)]

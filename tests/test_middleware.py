@@ -266,8 +266,6 @@ async def test_authorized_request_logs(
     assert record.method == "POST"
     assert record.path == "/invoices/classify"
     assert record.duration_ms >= 0
-
-
 async def test_expired_license_token_rejected(api_key_guard, license_guard) -> None:
     middleware = _middleware()
 
@@ -378,6 +376,7 @@ async def test_rate_limit_disabled_when_unset(
 
     assert all(resp.status_code == 200 for resp in responses)
     assert call_count == len(requests)
+
 
 
 async def test_extract_invoice_large_file_rejected() -> None:
