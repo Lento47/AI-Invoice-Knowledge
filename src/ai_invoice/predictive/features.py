@@ -40,13 +40,12 @@ def _ensure_columns(frame: pd.DataFrame, required: Iterable[str]) -> None:
 
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
     """Create the engineered feature frame used by the predictive model."""
-
     _ensure_columns(df, REQUIRED_COLUMNS)
     values = df.copy()
 
+    # Coerce and validate numeric
     for column in REQUIRED_COLUMNS:
         values[column] = pd.to_numeric(values[column], errors="coerce")
-
     if values[REQUIRED_COLUMNS].isnull().any().any():
         raise ValueError("Received null or non-numeric predictive feature values.")
 
@@ -59,11 +58,13 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     month = values["month"].round().astype(int)
     weekday = values["weekday"].round().astype(int)
 
+    # Base
     features["amount"] = amount
     features["customer_age_days"] = customer_age
     features["prior_invoices"] = prior_invoices
     features["late_ratio"] = late_ratio
 
+    # Derived
     features["amount_log"] = np.log1p(amount)
     features["is_q_end"] = month.isin([3, 6, 9, 12]).astype(int)
 
@@ -73,10 +74,12 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     )
     features["late_x_volume"] = late_ratio * features["amount_log"]
 
+    # One-hot for weekday (0-6)
     weekday_dummies = pd.get_dummies(weekday, prefix="weekday")
     for column in WEEKDAY_COLUMNS:
         features[column] = weekday_dummies.get(column, 0)
 
+    # One-hot for month (1-12)
     month_dummies = pd.get_dummies(month, prefix="month")
     for column in MONTH_COLUMNS:
         features[column] = month_dummies.get(column, 0)

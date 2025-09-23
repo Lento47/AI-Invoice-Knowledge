@@ -1,3 +1,5 @@
+---
+
 # AI Invoice System
 
 This repository contains a cross-platform AI service (Python/FastAPI) and Windows-focused .NET integration for automated invoice OCR, data extraction, smart classification, and payment prediction.
@@ -51,6 +53,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 ## Python service
 
 1. Create a virtual environment and install dependencies (via `uv` or `pip`).
+
    ```bash
    uv sync
    # or
@@ -61,6 +64,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 2. Copy `.env.example` to `.env` if you want to override model paths.
 
 3. Start the API locally:
+
    ```bash
    uv run uvicorn api.main:app --reload --port 8088
    # or
@@ -68,11 +72,12 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    ```
 
 4. Test the endpoints:
+
    ```bash
-   curl http://localhost:8088/health
-   curl -F "file=@data/samples/invoice1.pdf" http://localhost:8088/extract
-   curl -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/classify
-   curl -H "Content-Type: application/json" -d '{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}' http://localhost:8088/predict
+   curl http://localhost:8088/health/
+   curl -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
+   curl -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
+   curl -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
    ```
 
 5. (Optional) Interact with the classifier management endpoints:
@@ -81,14 +86,6 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    curl http://localhost:8088/models/classifier/status
    curl -F "file=@data/training/classifier_example.csv" http://localhost:8088/models/classifier/train
    curl -H "Content-Type: application/json" -d '{"text":"POS RECEIPT Store 123 Total 11.82"}' http://localhost:8088/models/classifier/classify
-   ```
-
-6. (Optional) Manage the predictive model lifecycle:
-
-   ```bash
-   curl http://localhost:8088/models/predictive/status
-   curl -F "file=@data/training/predictive_example.csv" http://localhost:8088/models/predictive/train
-   curl -H "Content-Type: application/json" -d '{"amount":1250.5,"customer_age_days":420,"prior_invoices":18,"late_ratio":0.22,"weekday":2,"month":9}' http://localhost:8088/models/predictive/predict
    ```
 
 ### Windows packaging
@@ -106,8 +103,8 @@ The resulting executable can be shipped alongside the .NET desktop app. Have the
 
 The `dotnet/` folder contains a solution with two projects:
 
-- **AIInvoiceSystem.Core** – class library with DTOs and an `AIClient` wrapper for the FastAPI service.
-- **AIInvoiceSystem.API** – minimal ASP.NET Core project demonstrating dependency registration.
+* **AIInvoiceSystem.Core** – class library with DTOs and an `AIClient` wrapper for the FastAPI service.
+* **AIInvoiceSystem.API** – minimal ASP.NET Core project demonstrating dependency registration.
 
 Restore and build:
 
@@ -127,7 +124,7 @@ Then inject and use `AIClient` in your controllers or background services.
 
 ## Next steps
 
-- Enhance OCR with layout-aware parsing.
-- Expand NLP rules and add locale-aware total extraction.
-- Broaden the dataset and labels for the classifier and predictive models.
-- Add retries, telemetry, and circuit breakers on the .NET side.
+* Enhance OCR with layout-aware parsing.
+* Expand NLP rules and add locale-aware total extraction.
+* Broaden the dataset and labels for the classifier and predictive models.
+* Add retries, telemetry, and circuit breakers on the .NET side.

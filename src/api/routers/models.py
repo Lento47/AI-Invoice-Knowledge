@@ -1,7 +1,13 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from ai_invoice.classify.model import predict_proba_texts, status, train_from_csv_bytes
+from ai_invoice.classify.model import (
+    predict_proba_texts,
+    status,
+    train_from_csv_bytes,
+)
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -29,7 +35,7 @@ async def classifier_train(file: UploadFile = File(...)):
 def classifier_classify(body: ClassifyIn):
     labels, proba = predict_proba_texts([body.text])
     if hasattr(proba, "shape"):
-        import numpy as np  # local import to avoid dependency if unused elsewhere
+        import numpy as np  # local to avoid global dependency elsewhere
 
         idx = int(np.argmax(proba[0]))
         return {
@@ -37,9 +43,9 @@ def classifier_classify(body: ClassifyIn):
             "proba": float(proba[0][idx]),
             "labels": labels,
         }
-    idx = 0
+    # Fallback for models without predict_proba / decision_function shape
     return {
-        "label": str(labels[idx] if labels else "unknown"),
+        "label": str(labels[0] if labels else "unknown"),
         "proba": 0.0,
         "labels": labels,
     }

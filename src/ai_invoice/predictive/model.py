@@ -16,15 +16,16 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from ai_invoice.config import settings
-
 from .features import ALL_FEATURE_COLUMNS, REQUIRED_COLUMNS, build_features
 
 MODEL_PATH = settings.predictive_path
 
 
+# ---------- Load/Save ----------
 def load_or_init() -> Pipeline:
     if os.path.exists(MODEL_PATH):
         model: Pipeline = joblib.load(MODEL_PATH)
+        # Backward/forward compatibility guards
         if not hasattr(model, "feature_columns"):
             model.feature_columns = list(ALL_FEATURE_COLUMNS)
         if not hasattr(model, "confidence_proxy_"):
@@ -56,6 +57,7 @@ def status() -> dict[str, Any]:
     return info
 
 
+# ---------- Training utilities ----------
 def _prepare_target(df: pd.DataFrame) -> pd.Series:
     target = pd.to_numeric(df["actual_payment_days"], errors="coerce")
     return target
@@ -76,24 +78,27 @@ def _clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             "CSV must include actual_payment_days or issue_date and paid_date columns."
         )
 
+    # Fill weekday/month if possible from issue_date
     if "weekday" not in df.columns and "issue_date" in df.columns:
         df["weekday"] = pd.to_datetime(df["issue_date"], errors="coerce").dt.weekday
     if "month" not in df.columns and "issue_date" in df.columns:
         df["month"] = pd.to_datetime(df["issue_date"], errors="coerce").dt.month
 
+    # Keep only valid targets
     df = df.dropna(subset=["actual_payment_days"])
     target = _prepare_target(df)
     df = df.loc[target.notna()].copy()
     df["actual_payment_days"] = target.loc[df.index]
     df = df[df["actual_payment_days"] >= 0]
 
+    # Ensure required feature columns exist
     missing = [column for column in REQUIRED_COLUMNS if column not in df.columns]
     if missing:
         raise ValueError(
-            "CSV missing required feature columns: "
-            + ", ".join(sorted(missing))
+            "CSV missing required feature columns: " + ", ".join(sorted(missing))
         )
 
+    # Coerce numerics
     for column in REQUIRED_COLUMNS:
         df[column] = pd.to_numeric(df[column], errors="coerce")
     df = df.dropna(subset=list(REQUIRED_COLUMNS))
@@ -168,20 +173,25 @@ def train_from_csv_bytes(
     }
 
 
+# ---------- Inference ----------
 def predict_payment_days(feature_row: dict[str, Any]) -> dict[str, float | str]:
     model = load_or_init()
 
+    # Build and align features
     try:
         feature_frame = build_features(pd.DataFrame([feature_row]))
     except ValueError as exc:
         raise ValueError(f"Invalid predictive features: {exc}") from exc
+
     columns = getattr(model, "feature_columns", list(ALL_FEATURE_COLUMNS))
     feature_frame = feature_frame.reindex(columns=columns, fill_value=0.0)
 
+    # Predict
     try:
         prediction = float(model.predict(feature_frame)[0])
         confidence = float(getattr(model, "confidence_proxy_", 0.5))
     except NotFittedError:
+        # Fallback sensible defaults when model hasn't been trained yet
         prediction = 30.0
         confidence = float(getattr(model, "confidence_proxy_", 0.3))
 
