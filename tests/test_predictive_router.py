@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Iterable
 
 import pytest
+from fastapi import HTTPException
 from fastapi.routing import APIRoute
 from starlette.datastructures import UploadFile
 
@@ -97,3 +98,18 @@ def test_predictive_train_route_registered(temp_predictive_model_path, monkeypat
     assert isinstance(payload, dict)
     assert payload.get("ok") is True
     assert "metrics" in payload
+
+
+def test_predictive_train_rejects_empty_upload(temp_predictive_model_path) -> None:
+    route = _get_route("/models/predictive/train", "POST")
+
+    upload = UploadFile(filename="empty.csv", file=io.BytesIO(b""))
+
+    async def invoke() -> dict[str, object]:
+        return await route.endpoint(file=upload)
+
+    with pytest.raises(HTTPException) as excinfo:
+        asyncio.run(invoke())
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.detail == "Uploaded file is empty."
