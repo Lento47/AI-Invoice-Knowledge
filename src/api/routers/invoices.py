@@ -17,6 +17,13 @@ class PredictRequest(BaseModel):
     features: dict
 
 
+def predict_from_features(features: dict) -> PredictiveResult:
+    try:
+        return predict(features)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/extract", response_model=InvoiceExtraction)
 async def extract_invoice_endpoint(file: UploadFile = File(...)) -> InvoiceExtraction:
     payload = await file.read()
@@ -30,7 +37,4 @@ def classify_invoice_endpoint(body: ClassifyRequest) -> ClassificationResult:
 
 @router.post("/predict", response_model=PredictiveResult)
 def predict_invoice_endpoint(body: PredictRequest) -> PredictiveResult:
-    try:
-        return predict(body.features)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return predict_from_features(body.features)

@@ -78,6 +78,9 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    curl -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
    curl -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
    curl -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
+   curl -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
+
+   # /predict is a lightweight alias of /invoices/predict with the same schema and response.
    ```
 
 5. (Optional) Interact with the classifier management endpoints:
