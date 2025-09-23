@@ -1,3 +1,4 @@
+```markdown
 # AI Invoice System
 
 This repository contains a cross-platform AI service (Python/FastAPI) and Windows-focused .NET integration for automated invoice OCR, data extraction, smart classification, and payment prediction.
@@ -5,6 +6,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 ## Project layout
 
 ```
+
 .
 ├─ README.md
 ├─ .env.example
@@ -16,7 +18,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │  ├─ samples/
 │  └─ training/
 ├─ src/
-│  ├─ ai_invoice/
+│  ├─ ai\_invoice/
 │  │  ├─ config.py
 │  │  ├─ schemas.py
 │  │  ├─ service.py
@@ -26,7 +28,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │  │  ├─ ocr/
 │  │  │  ├─ engine.py
 │  │  │  └─ postprocess.py
-│  │  ├─ nlp_extract/
+│  │  ├─ nlp\_extract/
 │  │  │  ├─ rules.py
 │  │  │  └─ parser.py
 │  │  ├─ classify/
@@ -43,24 +45,27 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │        ├─ invoices.py
 │        └─ models.py
 └─ dotnet/
-   ├─ AIInvoiceSystem.sln
-   ├─ AIInvoiceSystem.API/
-   └─ AIInvoiceSystem.Core/
-```
+├─ AIInvoiceSystem.sln
+├─ AIInvoiceSystem.API/
+└─ AIInvoiceSystem.Core/
+
+````
 
 ## Python service
 
 1. Create a virtual environment and install dependencies (via `uv` or `pip`).
+
    ```bash
    uv sync
    # or
    python -m venv .venv && source .venv/bin/activate
    pip install -e .
-   ```
+````
 
 2. Copy `.env.example` to `.env` if you want to override model paths or enforce an API key (set `AI_API_KEY`).
 
 3. Start the API locally:
+
    ```bash
    uv run uvicorn api.main:app --reload --port 8088
    # or
@@ -68,11 +73,12 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    ```
 
 4. Test the endpoints (include `-H "X-API-Key: $AI_API_KEY"` if you enabled the key):
+
    ```bash
-   curl http://localhost:8088/health
-   curl -F "file=@data/samples/invoice1.pdf" http://localhost:8088/extract
-   curl -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/classify
-   curl -H "Content-Type: application/json" -d '{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}' http://localhost:8088/predict
+   curl http://localhost:8088/health/
+   curl -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
+   curl -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
+   curl -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
    ```
 
 5. (Optional) Interact with the classifier management endpoints:
@@ -112,8 +118,8 @@ The resulting executable can be shipped alongside the .NET desktop app. Have the
 
 The `dotnet/` folder contains a solution with two projects:
 
-- **AIInvoiceSystem.Core** – class library with DTOs and an `AIClient` wrapper for the FastAPI service.
-- **AIInvoiceSystem.API** – minimal ASP.NET Core project demonstrating dependency registration.
+* **AIInvoiceSystem.Core** – class library with DTOs and an `AIClient` wrapper for the FastAPI service.
+* **AIInvoiceSystem.API** – minimal ASP.NET Core project demonstrating dependency registration.
 
 Restore and build:
 
@@ -144,12 +150,15 @@ Use `AIClient` in your controllers or background services once registered.
 
 ### Operations helpers
 
-- `scripts/generate_predictive_synth.py` &mdash; quickly builds training CSVs for payment prediction experiments.
-- `scripts/watchdog.ps1` &mdash; simple Windows watchdog that restarts the packaged API if the `/health` endpoint stops responding.
+* `scripts/generate_predictive_synth.py` — quickly builds training CSVs for payment prediction experiments.
+* `scripts/watchdog.ps1` — simple Windows watchdog that restarts the packaged API if the `/health` endpoint stops responding.
 
 ## Next steps
 
-- Enhance OCR with layout-aware parsing.
-- Expand NLP rules and add locale-aware total extraction.
-- Broaden the dataset and labels for the classifier and predictive models.
-- Add retries, telemetry, and circuit breakers on the .NET side.
+* Enhance OCR with layout-aware parsing.
+* Expand NLP rules and add locale-aware total extraction.
+* Broaden the dataset and labels for the classifier and predictive models.
+* Add retries, telemetry, and circuit breakers on the .NET side.
+
+```
+```

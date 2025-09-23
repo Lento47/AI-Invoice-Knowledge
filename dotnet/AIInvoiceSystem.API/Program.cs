@@ -1,6 +1,7 @@
 using AIInvoiceSystem.Core;
 using Polly;
 using Polly.Extensions.Http;
+using System.Net.Http;
 
 static IAsyncPolicy<HttpResponseMessage> RetryPolicy() =>
     HttpPolicyExtensions
@@ -13,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 builder.Services
     .AddHttpClient<AIClient>(client =>
     {

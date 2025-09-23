@@ -1,5 +1,9 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AIInvoiceSystem.Core;
 
@@ -9,23 +13,23 @@ public sealed class AIClient(HttpClient http)
     {
         using var content = new MultipartFormDataContent();
         content.Add(new StreamContent(file), "file", fileName);
-        var response = await http.PostAsync("/extract", content, ct);
+        var response = await http.PostAsync("/invoices/extract", content, ct);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<InvoiceExtractionDto>(cancellationToken: ct);
     }
 
     public async Task<ClassificationResultDto?> ClassifyAsync(string text, CancellationToken ct = default)
     {
-        var response = await http.PostAsJsonAsync("/classify", new { text }, ct);
+        var response = await http.PostAsJsonAsync("/invoices/classify", new { text }, ct);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<ClassificationResultDto>(cancellationToken: ct);
+        return await response.Content.ReadFromJsonAsync<ClassificationResultDto>(cancellation_token: ct);
     }
 
     public async Task<PredictiveResultDto?> PredictAsync(object features, CancellationToken ct = default)
     {
-        var response = await http.PostAsJsonAsync("/predict", features, ct);
+        var response = await http.PostAsJsonAsync("/invoices/predict", new { features }, ct);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<PredictiveResultDto>(cancellationToken: ct);
+        return await response.Content.ReadFromJsonAsync<PredictiveResultDto>(cancellation_token: ct);
     }
 }
 

@@ -16,7 +16,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     """Require a matching API key on every request except health."""
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        if request.url.path == "/health":
+        # Allow both /health and /health/ without auth
+        if request.url.path.rstrip("/") == "/health":
             return await call_next(request)
 
         if API_KEY:
