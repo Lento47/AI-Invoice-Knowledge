@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import os
 from typing import Sequence
@@ -11,7 +13,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
 from ai_invoice.config import settings
-
 from .featurize import build_vectorizer
 
 MODEL_PATH = settings.classifier_path
@@ -24,9 +25,10 @@ def load_or_init() -> Pipeline:
     pipeline = Pipeline(
         [
             ("tfidf", build_vectorizer()),
-            ("clf", LogisticRegression(max_iter=500, n_jobs=None, solver="lbfgs")),
+            ("clf", LogisticRegression(max_iter=500, solver="lbfgs")),
         ]
     )
+    # Provide default label order for untrained model
     pipeline.classes_ = np.array(["invoice", "receipt"])
     return pipeline
 
@@ -73,7 +75,7 @@ def train_from_csv_bytes(
     pipeline = Pipeline(
         [
             ("tfidf", build_vectorizer()),
-            ("clf", LogisticRegression(max_iter=1000, n_jobs=None, solver="lbfgs")),
+            ("clf", LogisticRegression(max_iter=1000, solver="lbfgs")),
         ]
     )
 
@@ -103,6 +105,6 @@ def status() -> dict:
     present = os.path.exists(MODEL_PATH)
     labels: list[str] = []
     if present:
-        pipeline = joblib.load(MODEL_PATH)
+        pipeline: Pipeline = joblib.load(MODEL_PATH)
         labels = list(getattr(pipeline, "classes_", []))
     return {"present": present, "path": MODEL_PATH, "labels": labels}
