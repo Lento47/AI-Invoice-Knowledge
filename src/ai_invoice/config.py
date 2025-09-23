@@ -1,8 +1,78 @@
 from __future__ import annotations
 
 import os
+
 from dataclasses import dataclass, field
 from typing import Optional
+
+
+@dataclass(frozen=True, slots=True)
+class TrustedCORSOrigin:
+    """Trusted origin entry describing credential requirements."""
+
+    origin: str
+    allow_credentials: bool = False
+
+
+def _parse_bool_env(value: str) -> bool:
+    """Parse common boolean environment values."""
+
+    normalized = value.strip().lower()
+    truthy = {"1", "true", "t", "yes", "y", "on", "credentials"}
+    falsy = {"0", "false", "f", "no", "n", "off"}
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+    raise ValueError(
+        "Environment variable CORS_TRUSTED_ORIGINS contains an invalid boolean value:"
+        f" {value!r}."
+    )
+
+
+def _get_cors_trusted_origins() -> list[TrustedCORSOrigin]:
+    """Read trusted CORS origins from the environment."""
+
+    raw = os.getenv("CORS_TRUSTED_ORIGINS")
+    if raw is None or raw.strip() == "":
+        return [TrustedCORSOrigin(origin="*", allow_credentials=False)]
+
+    entries: list[TrustedCORSOrigin] = []
+    for chunk in raw.split(","):
+        entry = chunk.strip()
+        if not entry:
+            continue
+
+        allow_credentials = False
+        if "|" in entry:
+            origin_part, flag_part = entry.split("|", 1)
+            origin = origin_part.strip()
+            if not origin:
+                raise ValueError(
+                    "CORS_TRUSTED_ORIGINS entries must include an origin before the credential flag."
+                )
+            allow_credentials = _parse_bool_env(flag_part)
+        else:
+            origin = entry
+
+        if origin == "*":
+            if allow_credentials:
+                raise ValueError(
+                    "CORS_TRUSTED_ORIGINS may not require credentials for wildcard origins."
+                )
+            if entries:
+                raise ValueError(
+                    "CORS_TRUSTED_ORIGINS wildcard origin cannot be combined with other origins."
+                )
+
+        if any(existing.origin == "*" for existing in entries):
+            raise ValueError(
+                "CORS_TRUSTED_ORIGINS wildcard origin cannot be combined with other origins."
+            )
+
+        entries.append(TrustedCORSOrigin(origin=origin, allow_credentials=allow_credentials))
+
+    return entries or [TrustedCORSOrigin(origin="*", allow_credentials=False)]
 
 
 def _get_int_env(name: str, default: Optional[int] = None) -> Optional[int]:
@@ -30,6 +100,7 @@ class Settings:
     max_feature_fields: int = field(default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50))
     max_json_body_bytes: Optional[int] = field(default_factory=lambda: _get_int_env("MAX_JSON_BODY_BYTES"))
     rate_limit_per_minute: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_PER_MINUTE"))
+    cors_trusted_origins: list[TrustedCORSOrigin] = field(default_factory=_get_cors_trusted_origins)
 
 
 settings = Settings()
