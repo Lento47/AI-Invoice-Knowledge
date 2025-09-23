@@ -11,7 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="8.0.0" />
+    <!-- Matches Program.cs which uses Polly v7 HttpPolicyExtensions APIs -->
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="7.2.1" />
+    <PackageReference Include="Polly" Version="7.2.3" />
   </ItemGroup>
 
 </Project>

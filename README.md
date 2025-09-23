@@ -1,5 +1,4 @@
----
-
+```markdown
 # AI Invoice System
 
 This repository contains a cross-platform AI service (Python/FastAPI) and Windows-focused .NET integration for automated invoice OCR, data extraction, smart classification, and payment prediction.
@@ -7,6 +6,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 ## Project layout
 
 ```
+
 .
 ├─ README.md
 ├─ .env.example
@@ -18,7 +18,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │  ├─ samples/
 │  └─ training/
 ├─ src/
-│  ├─ ai_invoice/
+│  ├─ ai\_invoice/
 │  │  ├─ config.py
 │  │  ├─ schemas.py
 │  │  ├─ service.py
@@ -28,7 +28,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │  │  ├─ ocr/
 │  │  │  ├─ engine.py
 │  │  │  └─ postprocess.py
-│  │  ├─ nlp_extract/
+│  │  ├─ nlp\_extract/
 │  │  │  ├─ rules.py
 │  │  │  └─ parser.py
 │  │  ├─ classify/
@@ -45,10 +45,11 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │        ├─ invoices.py
 │        └─ models.py
 └─ dotnet/
-   ├─ AIInvoiceSystem.sln
-   ├─ AIInvoiceSystem.API/
-   └─ AIInvoiceSystem.Core/
-```
+├─ AIInvoiceSystem.sln
+├─ AIInvoiceSystem.API/
+└─ AIInvoiceSystem.Core/
+
+````
 
 ## Python service
 
@@ -59,9 +60,9 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    # or
    python -m venv .venv && source .venv/bin/activate
    pip install -e .
-   ```
+````
 
-2. Copy `.env.example` to `.env` if you want to override model paths.
+2. Copy `.env.example` to `.env` if you want to override model paths or enforce an API key (set `AI_API_KEY`).
 
 3. Start the API locally:
 
@@ -71,7 +72,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    python -m uvicorn api.main:app --reload --port 8088
    ```
 
-4. Test the endpoints:
+4. Test the endpoints (include `-H "X-API-Key: $AI_API_KEY"` if you enabled the key):
 
    ```bash
    curl http://localhost:8088/health/
@@ -87,6 +88,52 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    curl -F "file=@data/training/classifier_example.csv" http://localhost:8088/models/classifier/train
    curl -H "Content-Type: application/json" -d '{"text":"POS RECEIPT Store 123 Total 11.82"}' http://localhost:8088/models/classifier/classify
    ```
+
+## Synthetic data generator
+
+Use the synthetic generator to fabricate reproducible training corpora without exposing production data. It relies on
+the [`faker`](https://faker.readthedocs.io/) library and deterministic seeds so batches can be regenerated on demand.
+
+```bash
+# Generate 500 invoices worth of training data with 60% invoices vs. 40% receipts.
+python scripts/generate_synthetic.py --records 500 --class-balance 0.6 --noise 0.25 --seed 1337
+```
+
+The command writes four CSV files into `data/training/` with a timestamped suffix:
+
+* `*_classifier_*.csv` – document text/label pairs for the classifier.
+* `*_predictive_*.csv` – structured features plus `actual_payment_days` for the predictive model.
+* `*_invoices_*.csv` – headline invoice metadata including payment outcomes.
+* `*_line_items_*.csv` – exploded invoice line-item details.
+
+### Refreshing the models with synthetic data
+
+1. Regenerate datasets with the CLI above whenever you need a fresh batch. Adjust `--records`, `--class-balance`, and
+   `--noise` to influence the corpus size, invoice/receipt ratio, and amount of textual/price jitter.
+
+2. Retrain the classifier by uploading the new classifier CSV to the FastAPI endpoint:
+
+   ```bash
+   latest_classifier=$(ls -t data/training/*_classifier_*.csv | head -n 1)
+   curl -F "file=@${latest_classifier}" http://localhost:8088/models/classifier/train
+   ```
+
+3. Refresh the predictive regression model from the newest predictive CSV:
+
+   ```bash
+   latest_predictive=$(ls -t data/training/*_predictive_*.csv | head -n 1)
+   uv run python - <<'PY'
+   from pathlib import Path
+   from ai_invoice.predictive import model
+
+   path = Path("${latest_predictive}")
+   metrics = model.train_from_csv_bytes(path.read_bytes())
+   print(metrics)
+   PY
+   ```
+
+The invoice and line item exports are optional references you can use for analytics notebooks or to seed downstream
+pipelines.
 
 ### Windows packaging
 
@@ -114,15 +161,37 @@ dotnet restore
 dotnet build
 ```
 
-`Program.cs` registers `AIClient` as a typed `HttpClient` with exponential backoff, jitter, and logging for retries. Timeouts, retry counts, and the FastAPI base URL can be overridden through `appsettings` values (see [Operational Guidance](docs/operations.md)). Inject and use `AIClient` in controllers or background services to access the FastAPI endpoints with cancellation support and rich error handling.
+The API project wires an `HttpClient` with retries, timeouts, and API-key propagation:
 
-## Operations
+```csharp
+builder.Services
+    .AddHttpClient<AIClient>(client =>
+    {
+        client.BaseAddress = new Uri("http://127.0.0.1:8088");
+        client.Timeout = TimeSpan.FromSeconds(20);
+        var apiKey = Environment.GetEnvironmentVariable("AI_API_KEY") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+        }
+    })
+    .AddPolicyHandler(RetryPolicy());
+```
 
-Operational details (retry tuning, watchdog installation, and verification steps) are documented in [docs/operations.md](docs/operations.md).
+Use `AIClient` in your controllers or background services once registered.
+
+### Operations helpers
+
+* `scripts/generate_synthetic.py` — generates synthetic classifier + predictive training CSVs.
+* `scripts/generate_predictive_synth.py` — quickly builds payment prediction CSVs.
+* `scripts/watchdog.ps1` — simple Windows watchdog that restarts the packaged API if the `/health` endpoint stops responding.
 
 ## Next steps
 
 * Enhance OCR with layout-aware parsing.
 * Expand NLP rules and add locale-aware total extraction.
 * Broaden the dataset and labels for the classifier and predictive models.
-* Add circuit breakers and application telemetry on the .NET side.
+* Add retries, telemetry, and circuit breakers on the .NET side.
+
+```
+```
