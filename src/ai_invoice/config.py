@@ -95,18 +95,43 @@ def _get_int_env(name: str, default: Optional[int] = None) -> Optional[int]:
     return value
 
 
+def _get_bool_env(name: str, default: bool = False) -> bool:
+    """Read a boolean environment variable."""
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    value = raw.strip().lower()
+    truthy = {"1", "true", "t", "yes", "y", "on"}
+    falsy = {"0", "false", "f", "no", "n", "off"}
+    if value in truthy:
+        return True
+    if value in falsy:
+        return False
+    raise ValueError(
+        "Environment variable %r must be a boolean value (one of %s or %s)."
+        % (name, sorted(truthy), sorted(falsy))
+    )
+
+
 def _get_api_key() -> Optional[str]:
     """Support both AI_API_KEY (preferred) and API_KEY for backward compatibility."""
-    return os.getenv("AI_API_KEY") or os.getenv("API_KEY")
+    key = os.getenv("AI_API_KEY") or os.getenv("API_KEY")
+    if key is None:
+        return None
+    key = key.strip()
+    return key or None
 
 
 @dataclass(slots=True)
 class Settings:
+    # Model paths
     classifier_path: str = field(default_factory=lambda: os.getenv("CLASSIFIER_PATH", "models/classifier.joblib"))
     predictive_path: str = field(default_factory=lambda: os.getenv("PREDICTIVE_PATH", "models/predictive.joblib"))
 
     # Auth
     api_key: Optional[str] = field(default_factory=_get_api_key)
+    # Explicit opt-out switch so devs must choose to run without an API key.
+    allow_anonymous: bool = field(default_factory=lambda: _get_bool_env("ALLOW_ANONYMOUS", False))
 
     # Request validation
     max_upload_bytes: int = field(default_factory=lambda: _get_int_env("MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
@@ -120,6 +145,13 @@ class Settings:
 
     # CORS
     cors_trusted_origins: list[TrustedCORSOrigin] = field(default_factory=_get_cors_trusted_origins)
+
+    def __post_init__(self) -> None:
+        # Enforce explicit choice: either set an API key or opt into anonymous mode.
+        if not self.api_key and not self.allow_anonymous:
+            raise ValueError(
+                "AI_API_KEY (or API_KEY) must be set unless ALLOW_ANONYMOUS=true is explicitly configured."
+            )
 
 
 settings = Settings()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from io import BytesIO
 from pathlib import Path
@@ -12,6 +13,8 @@ from starlette.responses import Response
 from starlette.datastructures import UploadFile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+os.environ.setdefault("API_KEY", "test-secret")
 
 from ai_invoice.config import settings
 from api.middleware import APIKeyAndLoggingMiddleware
