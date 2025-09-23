@@ -95,6 +95,15 @@ def _get_int_env(name: str, default: Optional[int] = None) -> Optional[int]:
     return value
 
 
+def _get_csv_env(name: str) -> frozenset[str]:
+    """Parse a comma-delimited environment variable into a frozen set."""
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return frozenset()
+    entries = [segment.strip() for segment in raw.split(",") if segment.strip()]
+    return frozenset(entries)
+
+
 def _get_bool_env(name: str, default: bool = False) -> bool:
     """Read a boolean environment variable."""
     raw = os.getenv(name)
@@ -143,6 +152,13 @@ class Settings:
     rate_limit_per_minute: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_PER_MINUTE"))
     rate_limit_burst: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_BURST"))
 
+    # License verification (optional)
+    license_public_key_path: Optional[str] = field(default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY_PATH"))
+    license_public_key: Optional[str] = field(default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY"))
+    license_algorithm: str = field(default_factory=lambda: os.getenv("LICENSE_ALGORITHM", "RS256"))
+    license_revoked_jtis: frozenset[str] = field(default_factory=lambda: _get_csv_env("LICENSE_REVOKED_JTIS"))
+    license_revoked_subjects: frozenset[str] = field(default_factory=lambda: _get_csv_env("LICENSE_REVOKED_SUBJECTS"))
+
     # CORS
     cors_trusted_origins: list[TrustedCORSOrigin] = field(default_factory=_get_cors_trusted_origins)
 
@@ -152,6 +168,28 @@ class Settings:
             raise ValueError(
                 "AI_API_KEY (or API_KEY) must be set unless ALLOW_ANONYMOUS=true is explicitly configured."
             )
+
+        # Normalize/resolve license config
+        if not self.license_public_key and self.license_public_key_path:
+            try:
+                with open(self.license_public_key_path, "r", encoding="utf-8") as handle:
+                    object.__setattr__(self, "license_public_key", handle.read())
+            except OSError as exc:  # pragma: no cover - defensive
+                raise RuntimeError(
+                    f"Unable to read license public key from {self.license_public_key_path!r}."
+                ) from exc
+
+        if self.license_public_key:
+            object.__setattr__(self, "license_public_key", self.license_public_key.strip())
+
+        alg = (self.license_algorithm or "RS256").strip().upper()
+        object.__setattr__(self, "license_algorithm", alg or "RS256")
+
+        # Ensure revoked sets are normalized (trim whitespace)
+        cleaned_jtis = frozenset(entry.strip() for entry in self.license_revoked_jtis if entry.strip())
+        cleaned_subjects = frozenset(entry.strip() for entry in self.license_revoked_subjects if entry.strip())
+        object.__setattr__(self, "license_revoked_jtis", cleaned_jtis)
+        object.__setattr__(self, "license_revoked_subjects", cleaned_subjects)
 
 
 settings = Settings()

@@ -14,6 +14,7 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 
 os.environ.setdefault("API_KEY", "test-secret")
 
+from api.license_validator import LicenseClaims
 from api.main import app, predict_endpoint
 from api.routers.invoices import (
     PredictRequest,
@@ -41,6 +42,17 @@ VALID_FEATURES = {
 }
 
 
+def _claims(*features: str) -> LicenseClaims:
+    feature_list = list(features)
+    return LicenseClaims(
+        raw={"exp": 2_000_000_000, "jti": "unit-test", "features": feature_list},
+        features=frozenset(feature_list),
+    )
+
+
+CLAIMS_PREDICT = _claims("predict")
+
+
 @pytest.fixture(autouse=True)
 def _stub_predict_service(monkeypatch: pytest.MonkeyPatch) -> None:
     """Stub the predictive service call to avoid model dependencies."""
@@ -59,7 +71,10 @@ def _stub_predict_service(monkeypatch: pytest.MonkeyPatch) -> None:
             confidence=0.9,
         )
 
+    # Patch the shared helper used by both endpoints
     monkeypatch.setattr("api.routers.invoices.predict", _fake_predict)
+    # Align with current api.main (exports predict_from_features, not predict_service)
+    monkeypatch.setattr("api.main.predict_from_features", _fake_predict)
 
 
 def test_predict_endpoint_registered_with_shared_response_model() -> None:
@@ -75,8 +90,8 @@ def test_predict_endpoint_registered_with_shared_response_model() -> None:
 
 def test_predict_endpoints_return_same_result() -> None:
     request = PredictRequest(features=VALID_FEATURES)
-    top_level = predict_endpoint(request)
-    invoices_route = predict_invoice_endpoint(request)
+    top_level = predict_endpoint(request, claims=CLAIMS_PREDICT)
+    invoices_route = predict_invoice_endpoint(request, claims=CLAIMS_PREDICT)
 
     assert top_level == invoices_route
 
@@ -85,7 +100,7 @@ def test_predict_endpoints_return_same_result() -> None:
 def test_predict_endpoints_raise_http_400_for_invalid_features(callable_) -> None:
     request = PredictRequest(features={"amount": 100})
     with pytest.raises(HTTPException) as exc_info:
-        callable_(request)
+        callable_(request, claims=CLAIMS_PREDICT)
 
     assert exc_info.value.status_code == 400
     assert "Missing required feature columns" in exc_info.value.detail
@@ -99,8 +114,17 @@ def test_predict_request_requires_mapping_features() -> None:
 @pytest.mark.parametrize("callable_", [predict_endpoint, predict_invoice_endpoint])
 def test_predict_endpoints_delegate_to_shared_helper(callable_) -> None:
     request = PredictRequest(features=VALID_FEATURES)
-    result = callable_(request)
+    result = callable_(request, claims=CLAIMS_PREDICT)
 
     assert isinstance(result, PredictiveResult)
     assert result == predict_from_features(VALID_FEATURES)
 
+
+@pytest.mark.parametrize("callable_", [predict_endpoint, predict_invoice_endpoint])
+def test_predict_endpoints_require_license_feature(callable_) -> None:
+    request = PredictRequest(features=VALID_FEATURES)
+    with pytest.raises(HTTPException) as exc_info:
+        callable_(request, claims=_claims())
+
+    assert exc_info.value.status_code == 403
+    assert "License" in exc_info.value.detail

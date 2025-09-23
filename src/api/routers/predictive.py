@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from ai_invoice.predictive.model import (
@@ -8,6 +8,8 @@ from ai_invoice.predictive.model import (
     status as predictive_status_fn,
     train_from_csv_bytes,
 )
+
+from ..license_validator import LicenseClaims, ensure_feature, require_feature_flag
 
 router = APIRouter(prefix="/models/predictive", tags=["models"])
 
@@ -22,12 +24,19 @@ class PredictIn(BaseModel):
 
 
 @router.get("/status")
-def predictive_status() -> dict:
+def predictive_status(
+    claims: LicenseClaims = Depends(require_feature_flag("predictive")),
+) -> dict:
+    ensure_feature(claims, "predictive")
     return predictive_status_fn()
 
 
 @router.post("/train")
-async def predictive_train(file: UploadFile = File(...)) -> dict:
+async def predictive_train(
+    file: UploadFile = File(...),
+    claims: LicenseClaims = Depends(require_feature_flag("predictive_train")),
+) -> dict:
+    ensure_feature(claims, "predictive_train")
     payload = await file.read()
     try:
         result = train_from_csv_bytes(payload)
@@ -37,7 +46,11 @@ async def predictive_train(file: UploadFile = File(...)) -> dict:
 
 
 @router.post("/predict")
-def predictive_predict(body: PredictIn) -> dict:
+def predictive_predict(
+    body: PredictIn,
+    claims: LicenseClaims = Depends(require_feature_flag("predictive")),
+) -> dict:
+    ensure_feature(claims, "predictive")
     try:
         return predict_payment_days(body.model_dump())
     except ValueError as exc:
