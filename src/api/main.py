@@ -6,7 +6,7 @@ import sys
 from fastapi import FastAPI
 
 from .middleware import configure_middleware
-from .routers import health, invoices, models
+from .routers import health, invoices, models, predictive
 
 # Basic stdout logging
 handler = logging.StreamHandler(sys.stdout)
@@ -26,6 +26,7 @@ configure_middleware(app)
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(models.router)
+app.include_router(predictive.router)
 
 
 @app.get("/")
