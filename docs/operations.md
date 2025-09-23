@@ -1,5 +1,12 @@
 # Operational Guidance
 
+## License tokens
+
+Every non-health endpoint now requires an `X-License` header containing a
+signed token. See [`license_management.md`](license_management.md) for
+instructions on generating key pairs, issuing tenant licenses, rotating keys,
+and revoking access.
+
 ## HTTP resilience configuration
 
 The API layer uses a typed `HttpClient` with exponential backoff and jitter when communicating with the packaged FastAPI worker. The defaults are:

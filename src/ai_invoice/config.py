@@ -25,6 +25,9 @@ class Settings:
     classifier_path: str = field(default_factory=lambda: os.getenv("CLASSIFIER_PATH", "models/classifier.joblib"))
     predictive_path: str = field(default_factory=lambda: os.getenv("PREDICTIVE_PATH", "models/predictive.joblib"))
     api_key: Optional[str] = field(default_factory=lambda: os.getenv("API_KEY"))
+    license_public_key_path: Optional[str] = field(
+        default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY_PATH", "keys/license_public.pem")
+    )
     max_upload_bytes: int = field(default_factory=lambda: _get_int_env("MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
     max_text_length: int = field(default_factory=lambda: _get_int_env("MAX_TEXT_LENGTH", 20_000))
     max_feature_fields: int = field(default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50))

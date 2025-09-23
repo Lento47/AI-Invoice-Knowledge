@@ -90,7 +90,7 @@ async def test_authorized_request_logs(api_key_guard, caplog: pytest.LogCaptureF
     assert record.status_code == 200
     assert record.method == "POST"
     assert record.path == "/invoices/classify"
-    assert record.duration >= 0
+    assert record.duration_ms >= 0
 
 
 async def test_extract_invoice_large_file_rejected() -> None:

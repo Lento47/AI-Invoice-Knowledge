@@ -12,6 +12,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
 from ai_invoice.config import Settings, settings
+from .security import require_license_token
 
 LOGGER_NAME = "ai_invoice.api.middleware"
 
@@ -127,4 +128,4 @@ def configure_middleware(app: FastAPI) -> None:
 
 
 # Convenience list for route-level dependency injection if desired:
-Dependencies = [Depends(require_api_key)]
+Dependencies = [Depends(require_api_key), Depends(require_license_token)]
