@@ -81,6 +81,12 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
    ```
 
+   You can also call `/predict` directly as a shorthand alias for `/invoices/predict`:
+
+   ```bash
+   curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
+   ```
+
 5. (Optional) Interact with the classifier management endpoints:
 
    ```bash

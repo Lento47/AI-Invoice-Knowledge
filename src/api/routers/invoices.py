@@ -21,6 +21,35 @@ class PredictRequest(BaseModel):
     features: dict
 
 
+def _validate_and_predict(features: dict) -> PredictiveResult:
+    if not features:
+        raise HTTPException(status_code=400, detail="features must not be empty.")
+    if settings.max_feature_fields and len(features) > settings.max_feature_fields:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Too many feature fields (max {settings.max_feature_fields}).",
+        )
+    if settings.max_json_body_bytes is not None:
+        encoded = json.dumps(features).encode("utf-8")
+        if len(encoded) > settings.max_json_body_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"Feature payload exceeds maximum size of "
+                    f"{settings.max_json_body_bytes} bytes."
+                ),
+            )
+    try:
+        return predict(features)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# Exported helper used by /predict alias in api.main
+def predict_from_features(features: dict) -> PredictiveResult:
+    return _validate_and_predict(features)
+
+
 @router.post("/extract", response_model=InvoiceExtraction)
 async def extract_invoice_endpoint(file: UploadFile = File(...)) -> InvoiceExtraction:
     payload = await file.read()
@@ -48,21 +77,4 @@ def classify_invoice_endpoint(body: ClassifyRequest) -> ClassificationResult:
 
 @router.post("/predict", response_model=PredictiveResult)
 def predict_invoice_endpoint(body: PredictRequest) -> PredictiveResult:
-    if not body.features:
-        raise HTTPException(status_code=400, detail="features must not be empty.")
-    if settings.max_feature_fields and len(body.features) > settings.max_feature_fields:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Too many feature fields (max {settings.max_feature_fields}).",
-        )
-    if settings.max_json_body_bytes is not None:
-        encoded = json.dumps(body.features).encode("utf-8")
-        if len(encoded) > settings.max_json_body_bytes:
-            raise HTTPException(
-                status_code=413,
-                detail=f"Feature payload exceeds maximum size of {settings.max_json_body_bytes} bytes.",
-            )
-    try:
-        return predict(body.features)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _validate_and_predict(body.features)
