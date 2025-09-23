@@ -1,5 +1,4 @@
----
-
+```markdown
 # AI Invoice System
 
 This repository contains a cross-platform AI service (Python/FastAPI) and Windows-focused .NET integration for automated invoice OCR, data extraction, smart classification, and payment prediction.
@@ -7,6 +6,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 ## Project layout
 
 ```
+
 .
 ├─ README.md
 ├─ .env.example
@@ -18,7 +18,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │  ├─ samples/
 │  └─ training/
 ├─ src/
-│  ├─ ai_invoice/
+│  ├─ ai\_invoice/
 │  │  ├─ config.py
 │  │  ├─ schemas.py
 │  │  ├─ service.py
@@ -28,7 +28,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │  │  ├─ ocr/
 │  │  │  ├─ engine.py
 │  │  │  └─ postprocess.py
-│  │  ├─ nlp_extract/
+│  │  ├─ nlp\_extract/
 │  │  │  ├─ rules.py
 │  │  │  └─ parser.py
 │  │  ├─ classify/
@@ -45,23 +45,24 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 │        ├─ invoices.py
 │        └─ models.py
 └─ dotnet/
-   ├─ AIInvoiceSystem.sln
-   ├─ AIInvoiceSystem.API/
-   └─ AIInvoiceSystem.Core/
-```
+├─ AIInvoiceSystem.sln
+├─ AIInvoiceSystem.API/
+└─ AIInvoiceSystem.Core/
+
+````
 
 ## Python service
 
-1. Create a virtual environment and install dependencies (via `uv` or `pip`).
+1. Create a virtual environment and install dependencies (via `uv` or `pip`):
 
    ```bash
    uv sync
    # or
    python -m venv .venv && source .venv/bin/activate
    pip install -e .
-   ```
+````
 
-2. Copy `.env.example` to `.env` if you want to override model paths.
+2. Copy `.env.example` to `.env` if you want to override model paths or configure authentication/limits.
 
 3. Start the API locally:
 
@@ -71,25 +72,43 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    python -m uvicorn api.main:app --reload --port 8088
    ```
 
-4. Test the endpoints:
+4. Test the endpoints (remember to include your `X-API-Key` header on authenticated routes):
 
    ```bash
    curl http://localhost:8088/health/
-   curl -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
-   curl -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
-   curl -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
-   curl -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
+   curl -H "X-API-Key: $AI_API_KEY" -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
+   curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
+   curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
+   ```
 
-   # /predict is a lightweight alias of /invoices/predict with the same schema and response.
+   You can also call `/predict` directly as a shorthand alias for `/invoices/predict`:
+
+   ```bash
+   curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
    ```
 
 5. (Optional) Interact with the classifier management endpoints:
 
    ```bash
-   curl http://localhost:8088/models/classifier/status
-   curl -F "file=@data/training/classifier_example.csv" http://localhost:8088/models/classifier/train
-   curl -H "Content-Type: application/json" -d '{"text":"POS RECEIPT Store 123 Total 11.82"}' http://localhost:8088/models/classifier/classify
+   curl -H "X-API-Key: $AI_API_KEY" http://localhost:8088/models/classifier/status
+   curl -H "X-API-Key: $AI_API_KEY" -F "file=@data/training/classifier_example.csv" http://localhost:8088/models/classifier/train
+   curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"text":"POS RECEIPT Store 123 Total 11.82"}' http://localhost:8088/models/classifier/classify
    ```
+
+### Configuration
+
+The API reads configuration from environment variables (or a `.env` file). Key knobs include:
+
+| Variable                | Default   | Description                                                                 |
+| ----------------------- | --------- | --------------------------------------------------------------------------- |
+| `AI_API_KEY`            | *unset*   | Shared secret required in the `X-API-Key` header for all non-health routes. |
+| `MAX_UPLOAD_BYTES`      | `5242880` | Maximum allowed size for uploaded files (default: 5 MiB).                   |
+| `MAX_TEXT_LENGTH`       | `20000`   | Maximum characters accepted for classification endpoints.                   |
+| `MAX_FEATURE_FIELDS`    | `50`      | Maximum number of keys accepted in predictive feature payloads.             |
+| `MAX_JSON_BODY_BYTES`   | *unset*   | Optional upper bound (bytes) for JSON feature payloads.                     |
+| `RATE_LIMIT_PER_MINUTE` | *unset*   | Reserved for future throttling/telemetry integrations.                      |
+
+Set these before starting the server (via `.env` or environment variables) to tune request validation and security.
 
 ### Windows packaging
 
@@ -117,13 +136,30 @@ dotnet restore
 dotnet build
 ```
 
-Add the HTTP client in `Program.cs`:
+The API project wires an `HttpClient` with retries, timeouts, and API-key propagation:
 
 ```csharp
-builder.Services.AddHttpClient<AIClient>(c => c.BaseAddress = new Uri("http://localhost:8088"));
+builder.Services
+    .AddHttpClient<AIClient>(client =>
+    {
+        client.BaseAddress = new Uri("http://127.0.0.1:8088");
+        client.Timeout = TimeSpan.FromSeconds(20);
+        var apiKey = Environment.GetEnvironmentVariable("AI_API_KEY") ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+        }
+    })
+    .AddPolicyHandler(RetryPolicy());
 ```
 
-Then inject and use `AIClient` in your controllers or background services.
+Use `AIClient` in your controllers or background services once registered.
+
+### Operations helpers
+
+* `scripts/generate_synthetic.py` — generates synthetic classifier + predictive training CSVs.
+* `scripts/generate_predictive_synth.py` — quickly builds payment prediction CSVs.
+* `scripts/watchdog.ps1` — simple Windows watchdog that restarts the packaged API if the `/health` endpoint stops responding.
 
 ## Next steps
 
@@ -131,3 +167,6 @@ Then inject and use `AIClient` in your controllers or background services.
 * Expand NLP rules and add locale-aware total extraction.
 * Broaden the dataset and labels for the classifier and predictive models.
 * Add retries, telemetry, and circuit breakers on the .NET side.
+
+```
+```

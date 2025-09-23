@@ -28,7 +28,7 @@ def load_or_init() -> Pipeline:
             ("clf", LogisticRegression(max_iter=500, solver="lbfgs")),
         ]
     )
-    # Provide default label order for an untrained model
+    # Default labels for an untrained model
     pipeline.classes_ = np.array(["invoice", "receipt"])
     return pipeline
 
