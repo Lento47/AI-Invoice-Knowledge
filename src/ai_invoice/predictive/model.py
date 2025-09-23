@@ -206,3 +206,8 @@ def predict_payment_days(feature_row: dict[str, Any]) -> dict[str, float | str]:
         "risk_score": risk,
         "confidence": confidence,
     }
+
+
+def predict_one(feature_row: dict[str, Any]) -> dict[str, float | str]:
+    """Compatibility wrapper used by top-level /predict endpoint."""
+    return predict_payment_days(feature_row)

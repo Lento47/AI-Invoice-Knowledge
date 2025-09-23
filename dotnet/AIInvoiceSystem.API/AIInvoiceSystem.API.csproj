@@ -10,4 +10,9 @@
     <ProjectReference Include="..\AIInvoiceSystem.Core\AIInvoiceSystem.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="7.2.1" />
+    <PackageReference Include="Polly" Version="7.2.3" />
+  </ItemGroup>
+
 </Project>
