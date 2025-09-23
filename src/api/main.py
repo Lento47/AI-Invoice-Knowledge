@@ -40,6 +40,7 @@ configure_middleware(app)
 # - /health/      -> health.router
 # - /invoices/*   -> invoices.router (extract, classify, predict)
 # - /models/*     -> models.router (classifier status/train/classify)
+# - /models/predictive/* -> predictive.router (predictive status/train/predict)
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(models.router)

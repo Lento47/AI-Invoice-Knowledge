@@ -13,7 +13,9 @@ from ai_invoice.config import settings
 
 from ..license_validator import LicenseClaims, ensure_feature, require_feature_flag
 
-router = APIRouter(prefix="/models/predictive", tags=["models"])
+from ..middleware import Dependencies
+
+router = APIRouter(prefix="/models/predictive", tags=["models"], dependencies=Dependencies)
 
 
 class PredictIn(BaseModel):
