@@ -20,6 +20,8 @@ builder.Services
     {
         client.BaseAddress = new Uri("http://127.0.0.1:8088");
         client.Timeout = TimeSpan.FromSeconds(20);
+
+        // Propagate API key to FastAPI if configured
         var apiKey = Environment.GetEnvironmentVariable("AI_API_KEY") ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
