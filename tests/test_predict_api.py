@@ -1,6 +1,7 @@
 """Tests for the predictive prediction endpoints."""
 
 from pathlib import Path
+import os
 import sys
 
 import pytest
@@ -10,6 +11,8 @@ from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
+
+os.environ.setdefault("API_KEY", "test-secret")
 
 from api.license_validator import LicenseClaims
 from api.main import app, predict_endpoint
@@ -68,8 +71,10 @@ def _stub_predict_service(monkeypatch: pytest.MonkeyPatch) -> None:
             confidence=0.9,
         )
 
+    # Patch the shared helper used by both endpoints
     monkeypatch.setattr("api.routers.invoices.predict", _fake_predict)
-    monkeypatch.setattr("api.main.predict_service", _fake_predict)
+    # Align with current api.main (exports predict_from_features, not predict_service)
+    monkeypatch.setattr("api.main.predict_from_features", _fake_predict)
 
 
 def test_predict_endpoint_registered_with_shared_response_model() -> None:
@@ -123,4 +128,3 @@ def test_predict_endpoints_require_license_feature(callable_) -> None:
 
     assert exc_info.value.status_code == 403
     assert "License" in exc_info.value.detail
-

@@ -3,15 +3,27 @@ from __future__ import annotations
 import logging
 import sys
 
-from fastapi import Depends, FastAPI, HTTPException
+STARTUP_LOGGER = logging.getLogger("ai_invoice.api.startup")
+
+try:
+    from ai_invoice.config import settings
+except ValueError as exc:
+    STARTUP_LOGGER.fatal("Invalid configuration detected during startup: %s", exc)
+    raise SystemExit(1) from exc
+
+if not settings.api_key and not getattr(settings, "allow_anonymous", False):
+    STARTUP_LOGGER.fatal(
+        "API_KEY environment variable must be set unless ALLOW_ANONYMOUS=true. Aborting startup."
+    )
+    raise SystemExit(1)
+
+from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
 
 from ai_invoice.schemas import PredictiveResult
-from ai_invoice.service import predict as predict_service
-
 from .license_validator import LicenseClaims, ensure_feature, require_feature_flag
 from .middleware import configure_middleware
 from .routers import health, invoices, models, predictive
-from .routers.invoices import PredictRequest
+from .routers.invoices import PredictRequest, predict_from_features
 
 # Basic stdout logging
 handler = logging.StreamHandler(sys.stdout)
@@ -47,7 +59,9 @@ def predict_endpoint(
 ) -> PredictiveResult:
     ensure_feature(claims, "predict")
     try:
-        return predict_service(body.features)
+        return predict_from_features(body.features)
+    except HTTPException:
+        raise
     except ValueError as exc:
         # Mirror behavior in the invoices router for invalid feature payloads
         raise HTTPException(status_code=400, detail=str(exc)) from exc
