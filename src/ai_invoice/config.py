@@ -30,6 +30,7 @@ class Settings:
     max_feature_fields: int = field(default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50))
     max_json_body_bytes: Optional[int] = field(default_factory=lambda: _get_int_env("MAX_JSON_BODY_BYTES"))
     rate_limit_per_minute: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_PER_MINUTE"))
+    rate_limit_burst: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_BURST"))
 
 
 settings = Settings()

@@ -1,4 +1,3 @@
-```python
 from __future__ import annotations
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -11,4 +10,3 @@ def build_vectorizer() -> TfidfVectorizer:
         ngram_range=(1, 2),
         strip_accents="unicode",
     )
-```
