@@ -7,6 +7,11 @@ from .routers import health, invoices, models
 
 app = FastAPI(title="AI Invoice System")
 configure_middleware(app)
+
+# Routers:
+# - /health/      -> health.router
+# - /invoices/*   -> invoices.router (extract, classify, predict, etc.)
+# - /models/*     -> models.router (classifier status/train/classify)
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(models.router)
