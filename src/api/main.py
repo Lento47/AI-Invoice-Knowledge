@@ -17,10 +17,10 @@ if not settings.api_key and not getattr(settings, "allow_anonymous", False):
     )
     raise SystemExit(1)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException  # noqa: E402
 
 from ai_invoice.schemas import PredictiveResult
-
+from .license_validator import LicenseClaims, ensure_feature, require_feature_flag
 from .middleware import configure_middleware
 from .routers import health, invoices, models, predictive
 from .routers.invoices import PredictRequest, predict_from_features
@@ -53,7 +53,11 @@ def root() -> dict[str, str]:
 
 # Lightweight alias for /invoices/predict using the same schema/response
 @app.post("/predict", response_model=PredictiveResult, tags=["invoices"])
-def predict_endpoint(body: PredictRequest) -> PredictiveResult:
+def predict_endpoint(
+    body: PredictRequest,
+    claims: LicenseClaims = Depends(require_feature_flag("predict")),
+) -> PredictiveResult:
+    ensure_feature(claims, "predict")
     try:
         return predict_from_features(body.features)
     except HTTPException:
