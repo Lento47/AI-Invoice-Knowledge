@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from ai_invoice.schemas import ClassificationResult, InvoiceExtraction, PredictiveResult
@@ -30,4 +30,7 @@ def classify_invoice_endpoint(body: ClassifyRequest) -> ClassificationResult:
 
 @router.post("/predict", response_model=PredictiveResult)
 def predict_invoice_endpoint(body: PredictRequest) -> PredictiveResult:
-    return predict(body.features)
+    try:
+        return predict(body.features)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
