@@ -61,7 +61,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    pip install -e .
    ```
 
-2. Copy `.env.example` to `.env` if you want to override model paths.
+2. Copy `.env.example` to `.env` if you want to override model paths or configure authentication/limits.
 
 3. Start the API locally:
 
@@ -71,22 +71,37 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    python -m uvicorn api.main:app --reload --port 8088
    ```
 
-4. Test the endpoints:
+4. Test the endpoints (remember to include your `X-API-Key` header on authenticated routes):
 
    ```bash
    curl http://localhost:8088/health/
-   curl -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
-   curl -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
-   curl -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
+   curl -H "X-API-Key: $API_KEY" -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
+   curl -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
+   curl -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
    ```
 
 5. (Optional) Interact with the classifier management endpoints:
 
    ```bash
-   curl http://localhost:8088/models/classifier/status
-   curl -F "file=@data/training/classifier_example.csv" http://localhost:8088/models/classifier/train
-   curl -H "Content-Type: application/json" -d '{"text":"POS RECEIPT Store 123 Total 11.82"}' http://localhost:8088/models/classifier/classify
+   curl -H "X-API-Key: $API_KEY" http://localhost:8088/models/classifier/status
+   curl -H "X-API-Key: $API_KEY" -F "file=@data/training/classifier_example.csv" http://localhost:8088/models/classifier/train
+   curl -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" -d '{"text":"POS RECEIPT Store 123 Total 11.82"}' http://localhost:8088/models/classifier/classify
    ```
+
+### Configuration
+
+The API reads configuration from environment variables (or a `.env` file). Key knobs include:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `API_KEY` | _unset_ | Shared secret required in the `X-API-Key` header for all non-health endpoints. |
+| `MAX_UPLOAD_BYTES` | `5242880` (5 MiB) | Maximum allowed size for uploaded files (`/invoices/extract`, `/models/classifier/train`). |
+| `MAX_TEXT_LENGTH` | `20000` | Maximum characters accepted for classification endpoints. |
+| `MAX_FEATURE_FIELDS` | `50` | Maximum number of keys accepted in predictive feature payloads. |
+| `MAX_JSON_BODY_BYTES` | _unset_ | Optional upper bound (in bytes) for JSON feature payloads. |
+| `RATE_LIMIT_PER_MINUTE` | _unset_ | Reserved for future throttling/telemetry integrations. |
+
+Set these values before starting the server (e.g. via a `.env` file or exporting environment variables) to tune request validation and security for your deployment.
 
 ### Windows packaging
 
