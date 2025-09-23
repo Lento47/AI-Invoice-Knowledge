@@ -20,6 +20,16 @@ def _get_int_env(name: str, default: Optional[int] = None) -> Optional[int]:
     return value
 
 
+def _get_csv_env(name: str) -> frozenset[str]:
+    """Parse a comma-delimited environment variable into a frozen set."""
+
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return frozenset()
+    entries = [segment.strip() for segment in raw.split(",") if segment.strip()]
+    return frozenset(entries)
+
+
 @dataclass(slots=True)
 class Settings:
     classifier_path: str = field(default_factory=lambda: os.getenv("CLASSIFIER_PATH", "models/classifier.joblib"))
@@ -30,6 +40,37 @@ class Settings:
     max_feature_fields: int = field(default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50))
     max_json_body_bytes: Optional[int] = field(default_factory=lambda: _get_int_env("MAX_JSON_BODY_BYTES"))
     rate_limit_per_minute: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_PER_MINUTE"))
+    license_public_key_path: Optional[str] = field(
+        default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY_PATH")
+    )
+    license_public_key: Optional[str] = field(default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY"))
+    license_algorithm: str = field(default_factory=lambda: os.getenv("LICENSE_ALGORITHM", "RS256"))
+    license_revoked_jtis: frozenset[str] = field(
+        default_factory=lambda: _get_csv_env("LICENSE_REVOKED_JTIS")
+    )
+    license_revoked_subjects: frozenset[str] = field(
+        default_factory=lambda: _get_csv_env("LICENSE_REVOKED_SUBJECTS")
+    )
+
+    def __post_init__(self) -> None:
+        if not self.license_public_key and self.license_public_key_path:
+            try:
+                with open(self.license_public_key_path, "r", encoding="utf-8") as handle:
+                    self.license_public_key = handle.read()
+            except OSError as exc:  # pragma: no cover - defensive branch
+                raise RuntimeError(
+                    f"Unable to read license public key from {self.license_public_key_path!r}."
+                ) from exc
+        if self.license_public_key:
+            self.license_public_key = self.license_public_key.strip()
+        alg = (self.license_algorithm or "RS256").strip()
+        self.license_algorithm = alg.upper() if alg else "RS256"
+        self.license_revoked_jtis = frozenset(
+            entry.strip() for entry in self.license_revoked_jtis if entry.strip()
+        )
+        self.license_revoked_subjects = frozenset(
+            entry.strip() for entry in self.license_revoked_subjects if entry.strip()
+        )
 
 
 settings = Settings()

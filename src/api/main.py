@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 import sys
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 
 from ai_invoice.schemas import PredictiveResult
 from ai_invoice.service import predict as predict_service
 
+from .license_validator import LicenseClaims, ensure_feature, require_feature_flag
 from .middleware import configure_middleware
-from .routers import health, invoices, models
+from .routers import health, invoices, models, predictive
 from .routers.invoices import PredictRequest
 
 # Basic stdout logging
@@ -30,6 +31,7 @@ configure_middleware(app)
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(models.router)
+app.include_router(predictive.router)
 
 
 @app.get("/")
@@ -39,7 +41,11 @@ def root() -> dict[str, str]:
 
 # Lightweight alias for /invoices/predict using the same schema/response
 @app.post("/predict", response_model=PredictiveResult, tags=["invoices"])
-def predict_endpoint(body: PredictRequest) -> PredictiveResult:
+def predict_endpoint(
+    body: PredictRequest,
+    claims: LicenseClaims = Depends(require_feature_flag("predict")),
+) -> PredictiveResult:
+    ensure_feature(claims, "predict")
     try:
         return predict_service(body.features)
     except ValueError as exc:
