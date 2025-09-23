@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import hmac
 import logging
 import time
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Dict
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -14,6 +16,48 @@ from starlette.types import ASGIApp
 from ai_invoice.config import Settings, settings
 
 LOGGER_NAME = "ai_invoice.api.middleware"
+
+
+@dataclass
+class _TokenBucket:
+    tokens: float
+    last_refill: float
+
+
+class TokenBucketLimiter:
+    """Simple token bucket limiter keyed by identity."""
+
+    def __init__(self, rate_per_minute: int, burst: int | None = None) -> None:
+        if rate_per_minute <= 0:
+            raise ValueError("rate_per_minute must be positive")
+        burst_tokens = max(0, (burst or 0))
+        self.rate_limit_per_minute = rate_per_minute
+        self.rate_limit_burst = burst_tokens
+        self.capacity = float(rate_per_minute + burst_tokens)
+        self.refill_rate = float(rate_per_minute) / 60.0
+        self._buckets: Dict[str, _TokenBucket] = {}
+
+    def _refill(self, bucket: _TokenBucket, now: float) -> None:
+        if now <= bucket.last_refill:
+            return
+        elapsed = now - bucket.last_refill
+        bucket.tokens = min(self.capacity, bucket.tokens + elapsed * self.refill_rate)
+        bucket.last_refill = now
+
+    def allow(self, identity: str, *, now: float | None = None) -> bool:
+        current_time = now if now is not None else time.monotonic()
+        bucket = self._buckets.get(identity)
+        if bucket is None:
+            bucket = _TokenBucket(tokens=self.capacity, last_refill=current_time)
+            self._buckets[identity] = bucket
+        else:
+            self._refill(bucket, current_time)
+
+        if bucket.tokens >= 1:
+            bucket.tokens -= 1
+            return True
+
+        return False
 
 
 def _is_authorized(header_value: str | None, config: Settings) -> bool:
@@ -35,10 +79,35 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.config = config
         self.logger = logger or logging.getLogger(LOGGER_NAME)
+        rate_limit = getattr(config, "rate_limit_per_minute", None)
+        if rate_limit and rate_limit > 0:
+            burst = getattr(config, "rate_limit_burst", None)
+            self._limiter = TokenBucketLimiter(rate_limit, burst)
+        else:
+            self._limiter = None
+
+    def _identity_from_request(self, request: Request) -> tuple[str, str]:
+        license_header = request.headers.get("X-License-Key")
+        if license_header:
+            identity = f"license:{license_header}"
+            label = "license"
+        else:
+            api_key_header = request.headers.get("X-API-Key")
+            if api_key_header:
+                identity = f"api_key:{api_key_header}"
+                label = "api_key"
+            else:
+                client_host = request.client.host if request.client else "unknown"
+                identity = f"client:{client_host}"
+                label = "client"
+        digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
+        return identity, f"{label}:{digest}"
 
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
         start = time.perf_counter()
         request.state.start_time = start
+        request.state.rate_limited = False
+        request.state.identity_hash = None
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         response: Response | None = None
         try:
@@ -49,6 +118,30 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                     status_code = status.HTTP_401_UNAUTHORIZED
                     response = JSONResponse({"detail": "Unauthorized"}, status_code=status_code)
                     return response
+                if self._limiter is not None:
+                    identity, identity_hash = self._identity_from_request(request)
+                    request.state.identity_hash = identity_hash
+                    allowed = self._limiter.allow(identity)
+                    if not allowed:
+                        status_code = status.HTTP_429_TOO_MANY_REQUESTS
+                        request.state.rate_limited = True
+                        throttle_log = {
+                            "event": "rate_limit_exceeded",
+                            "identity_hash": identity_hash,
+                            "throttled": True,
+                            "status_code": status_code,
+                            "rate_limit_per_minute": self._limiter.rate_limit_per_minute,
+                            "rate_limit_burst": self._limiter.rate_limit_burst,
+                        }
+                        self.logger.warning(
+                            "Rate limit exceeded for identity %s",
+                            identity_hash,
+                            extra=throttle_log,
+                        )
+                        response = JSONResponse(
+                            {"detail": "Too Many Requests"}, status_code=status_code
+                        )
+                        return response
 
             request.state.api_key_valid = True
             response = await call_next(request)
@@ -70,6 +163,12 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                 "duration": duration,
                 "duration_ms": round(duration * 1000, 3),
             }
+            if getattr(request.state, "identity_hash", None):
+                log_data["identity_hash"] = request.state.identity_hash
+            log_data["throttled"] = bool(getattr(request.state, "rate_limited", False))
+            if self._limiter is not None:
+                log_data["rate_limit_per_minute"] = self._limiter.rate_limit_per_minute
+                log_data["rate_limit_burst"] = self._limiter.rate_limit_burst
             self.logger.info(
                 "%s %s -> %s in %.3f ms",
                 request.method,
@@ -120,11 +219,19 @@ def configure_middleware(app: FastAPI) -> None:
     max_len = int(getattr(settings, "max_upload_bytes", 20 * 1024 * 1024))
     app.add_middleware(BodyLimitMiddleware, max_len=max_len)
 
-    # CORS (open by default; tighten for production as needed)
+    # CORS
+    trusted_origins = getattr(settings, "cors_trusted_origins", [])
+    if trusted_origins:
+        allow_origins = list(dict.fromkeys(origin.origin for origin in trusted_origins))
+        allow_credentials = any(origin.allow_credentials for origin in trusted_origins)
+    else:
+        allow_origins = ["*"]
+        allow_credentials = False
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=allow_origins,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

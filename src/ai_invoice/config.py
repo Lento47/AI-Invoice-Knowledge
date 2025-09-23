@@ -5,15 +5,90 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
+@dataclass(frozen=True, slots=True)
+class TrustedCORSOrigin:
+    """Trusted origin entry describing credential requirements."""
+    origin: str
+    allow_credentials: bool = False
+
+
+def _parse_bool_env(value: str) -> bool:
+    """Parse common boolean environment values."""
+    normalized = value.strip().lower()
+    truthy = {"1", "true", "t", "yes", "y", "on", "credentials"}
+    falsy = {"0", "false", "f", "no", "n", "off"}
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+    raise ValueError(
+        "Environment variable CORS_TRUSTED_ORIGINS contains an invalid boolean value: "
+        f"{value!r}."
+    )
+
+
+def _get_cors_trusted_origins() -> list[TrustedCORSOrigin]:
+    """Read trusted CORS origins from the environment.
+
+    Format (comma-separated):
+      - "*"
+      - "https://example.com"
+      - "https://app.example.com|true"  # allow credentials for this origin
+
+    Rules:
+      - Wildcard '*' cannot be combined with other origins.
+      - Credentials cannot be required for wildcard origins.
+    """
+    raw = os.getenv("CORS_TRUSTED_ORIGINS")
+    if raw is None or raw.strip() == "":
+        return [TrustedCORSOrigin(origin="*", allow_credentials=False)]
+
+    entries: list[TrustedCORSOrigin] = []
+    for chunk in raw.split(","):
+        entry = chunk.strip()
+        if not entry:
+            continue
+
+        allow_credentials = False
+        if "|" in entry:
+            origin_part, flag_part = entry.split("|", 1)
+            origin = origin_part.strip()
+            if not origin:
+                raise ValueError(
+                    "CORS_TRUSTED_ORIGINS entries must include an origin before the credential flag."
+                )
+            allow_credentials = _parse_bool_env(flag_part)
+        else:
+            origin = entry
+
+        if origin == "*":
+            if allow_credentials:
+                raise ValueError(
+                    "CORS_TRUSTED_ORIGINS may not require credentials for wildcard origins."
+                )
+            if entries:
+                raise ValueError(
+                    "CORS_TRUSTED_ORIGINS wildcard origin cannot be combined with other origins."
+                )
+
+        if any(existing.origin == "*" for existing in entries):
+            raise ValueError(
+                "CORS_TRUSTED_ORIGINS wildcard origin cannot be combined with other origins."
+            )
+
+        entries.append(TrustedCORSOrigin(origin=origin, allow_credentials=allow_credentials))
+
+    return entries or [TrustedCORSOrigin(origin="*", allow_credentials=False)]
+
+
 def _get_int_env(name: str, default: Optional[int] = None) -> Optional[int]:
     """Read an integer environment variable with optional default."""
-
     raw = os.getenv(name)
     if raw is None or raw.strip() == "":
         return default
     try:
         value = int(raw)
-    except ValueError as exc:  # pragma: no cover - defensive branch
+    except ValueError as exc:  # pragma: no cover - defensive
         raise ValueError(f"Environment variable {name!r} must be an integer.") from exc
     if value < 0:
         raise ValueError(f"Environment variable {name!r} must be non-negative.")
@@ -22,15 +97,12 @@ def _get_int_env(name: str, default: Optional[int] = None) -> Optional[int]:
 
 def _get_bool_env(name: str, default: bool = False) -> bool:
     """Read a boolean environment variable."""
-
     raw = os.getenv(name)
     if raw is None or raw.strip() == "":
         return default
-
     value = raw.strip().lower()
     truthy = {"1", "true", "t", "yes", "y", "on"}
     falsy = {"0", "false", "f", "no", "n", "off"}
-
     if value in truthy:
         return True
     if value in falsy:
@@ -41,37 +113,44 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
     )
 
 
-def _get_str_env(name: str) -> Optional[str]:
-    """Read a string environment variable and normalize blanks to None."""
-
-    raw = os.getenv(name)
-    if raw is None:
+def _get_api_key() -> Optional[str]:
+    """Support both AI_API_KEY (preferred) and API_KEY for backward compatibility."""
+    key = os.getenv("AI_API_KEY") or os.getenv("API_KEY")
+    if key is None:
         return None
-    value = raw.strip()
-    return value or None
+    key = key.strip()
+    return key or None
 
 
 @dataclass(slots=True)
 class Settings:
+    # Model paths
     classifier_path: str = field(default_factory=lambda: os.getenv("CLASSIFIER_PATH", "models/classifier.joblib"))
     predictive_path: str = field(default_factory=lambda: os.getenv("PREDICTIVE_PATH", "models/predictive.joblib"))
-    api_key: Optional[str] = field(default_factory=lambda: _get_str_env("API_KEY"))
+
+    # Auth
+    api_key: Optional[str] = field(default_factory=_get_api_key)
+    # Explicit opt-out switch so devs must choose to run without an API key.
     allow_anonymous: bool = field(default_factory=lambda: _get_bool_env("ALLOW_ANONYMOUS", False))
+
+    # Request validation
     max_upload_bytes: int = field(default_factory=lambda: _get_int_env("MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
     max_text_length: int = field(default_factory=lambda: _get_int_env("MAX_TEXT_LENGTH", 20_000))
     max_feature_fields: int = field(default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50))
     max_json_body_bytes: Optional[int] = field(default_factory=lambda: _get_int_env("MAX_JSON_BODY_BYTES"))
+
+    # Rate limiting knobs (not yet enforced in middleware)
     rate_limit_per_minute: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_PER_MINUTE"))
+    rate_limit_burst: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_BURST"))
+
+    # CORS
+    cors_trusted_origins: list[TrustedCORSOrigin] = field(default_factory=_get_cors_trusted_origins)
 
     def __post_init__(self) -> None:
-        if self.api_key is not None:
-            normalized = self.api_key.strip()
-            self.api_key = normalized or None
-
+        # Enforce explicit choice: either set an API key or opt into anonymous mode.
         if not self.api_key and not self.allow_anonymous:
             raise ValueError(
-                "API_KEY environment variable must be set to a non-empty value unless "
-                "ALLOW_ANONYMOUS is explicitly enabled."
+                "AI_API_KEY (or API_KEY) must be set unless ALLOW_ANONYMOUS=true is explicitly configured."
             )
 
 

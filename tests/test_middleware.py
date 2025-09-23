@@ -56,7 +56,22 @@ def api_key_guard() -> None:
         settings.api_key = previous
 
 
-async def test_missing_api_key_is_rejected(api_key_guard, caplog: pytest.LogCaptureFixture) -> None:
+@pytest.fixture()
+def rate_limit_guard() -> None:
+    previous_rate = settings.rate_limit_per_minute
+    previous_burst = getattr(settings, "rate_limit_burst", None)
+    settings.rate_limit_per_minute = None
+    settings.rate_limit_burst = None
+    try:
+        yield
+    finally:
+        settings.rate_limit_per_minute = previous_rate
+        settings.rate_limit_burst = previous_burst
+
+
+async def test_missing_api_key_is_rejected(
+    api_key_guard, rate_limit_guard, caplog: pytest.LogCaptureFixture
+) -> None:
     middleware = _middleware()
     called = False
 
@@ -75,7 +90,9 @@ async def test_missing_api_key_is_rejected(api_key_guard, caplog: pytest.LogCapt
     assert record.status_code == 401
 
 
-async def test_authorized_request_logs(api_key_guard, caplog: pytest.LogCaptureFixture) -> None:
+async def test_authorized_request_logs(
+    api_key_guard, rate_limit_guard, caplog: pytest.LogCaptureFixture
+) -> None:
 
     async def call_next(request: Request) -> Response:
         return Response("ok", media_type="application/json")
@@ -94,6 +111,81 @@ async def test_authorized_request_logs(api_key_guard, caplog: pytest.LogCaptureF
     assert record.method == "POST"
     assert record.path == "/invoices/classify"
     assert record.duration >= 0
+
+
+async def test_rate_limit_allows_within_budget(
+    api_key_guard, rate_limit_guard
+) -> None:
+    settings.rate_limit_per_minute = 2
+    settings.rate_limit_burst = 0
+    middleware = _middleware()
+
+    async def call_next(request: Request) -> Response:
+        return Response("ok")
+
+    request = _build_request(headers=[(b"x-api-key", b"test-secret")])
+    response = await middleware.dispatch(request, call_next)
+
+    assert response.status_code == 200
+
+
+async def test_rate_limit_throttles_requests(
+    api_key_guard, rate_limit_guard, caplog: pytest.LogCaptureFixture
+) -> None:
+    settings.rate_limit_per_minute = 2
+    settings.rate_limit_burst = 0
+    middleware = _middleware()
+
+    call_count = 0
+
+    async def call_next(request: Request) -> Response:
+        nonlocal call_count
+        call_count += 1
+        return Response("ok")
+
+    headers = [(b"x-api-key", b"test-secret")]
+    requests = [_build_request(headers=headers) for _ in range(3)]
+
+    with caplog.at_level(logging.INFO, logger="ai_invoice.api.middleware"):
+        responses = [await middleware.dispatch(req, call_next) for req in requests]
+
+    assert [resp.status_code for resp in responses] == [200, 200, 429]
+    assert call_count == 2
+
+    throttle_logs = [
+        record
+        for record in caplog.records
+        if record.name == "ai_invoice.api.middleware" and getattr(record, "event", "") == "rate_limit_exceeded"
+    ]
+    assert throttle_logs, "Expected a throttling log entry"
+    throttled_info = [
+        record
+        for record in caplog.records
+        if record.name == "ai_invoice.api.middleware" and getattr(record, "throttled", False)
+    ]
+    assert throttled_info, "Expected final log entry to mark throttled requests"
+
+
+async def test_rate_limit_disabled_when_unset(
+    api_key_guard, rate_limit_guard
+) -> None:
+    settings.rate_limit_per_minute = None
+    middleware = _middleware()
+
+    call_count = 0
+
+    async def call_next(request: Request) -> Response:
+        nonlocal call_count
+        call_count += 1
+        return Response("ok")
+
+    headers = [(b"x-api-key", b"test-secret")]
+    requests = [_build_request(headers=headers) for _ in range(5)]
+
+    responses = [await middleware.dispatch(req, call_next) for req in requests]
+
+    assert all(resp.status_code == 200 for resp in responses)
+    assert call_count == len(requests)
 
 
 async def test_extract_invoice_large_file_rejected() -> None:
