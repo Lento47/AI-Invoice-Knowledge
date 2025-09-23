@@ -216,11 +216,19 @@ def configure_middleware(app: FastAPI) -> None:
     max_len = int(getattr(settings, "max_upload_bytes", 20 * 1024 * 1024))
     app.add_middleware(BodyLimitMiddleware, max_len=max_len)
 
-    # CORS (open by default; tighten for production as needed)
+    # CORS
+    trusted_origins = getattr(settings, "cors_trusted_origins", [])
+    if trusted_origins:
+        allow_origins = list(dict.fromkeys(origin.origin for origin in trusted_origins))
+        allow_credentials = any(origin.allow_credentials for origin in trusted_origins)
+    else:
+        allow_origins = ["*"]
+        allow_credentials = False
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=allow_origins,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
