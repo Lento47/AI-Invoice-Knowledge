@@ -109,6 +109,20 @@ def test_predictive_train_route_registered(temp_predictive_model_path, monkeypat
     assert payload.get("ok") is True
     assert "metrics" in payload
 
+def test_predictive_train_rejects_empty_upload(temp_predictive_model_path) -> None:
+    route = _get_route("/models/predictive/train", "POST")
+
+    upload = UploadFile(filename="empty.csv", file=io.BytesIO(b""))
+
+    async def invoke() -> dict[str, object]:
+        return await route.endpoint(file=upload)
+
+    with pytest.raises(HTTPException) as excinfo:
+        asyncio.run(invoke())
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.detail == "Uploaded file is empty."
+
 
 def test_predictive_routes_require_matching_features() -> None:
     body = predictive_router.PredictIn(
