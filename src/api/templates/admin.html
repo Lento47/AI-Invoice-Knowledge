@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Invoice Administration</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/static/css/admin.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <h1>AI Invoice Administration</h1>
+          <p class="subtitle">
+            Manage runtime configuration, authentication, and safety limits for the service.
+          </p>
+        </div>
+      </header>
+
+      <section class="card" id="authentication-card">
+        <h2>Authenticate</h2>
+        <p class="hint">
+          Enter the administrative token configured for the deployment. The token is stored locally only when you choose to remember it.
+        </p>
+        <div class="auth-grid">
+          <label for="admin-token" class="field-label">Admin token</label>
+          <input
+            type="password"
+            id="admin-token"
+            class="text-input"
+            autocomplete="off"
+            placeholder="X-Admin-Token"
+          />
+          <label class="remember-toggle">
+            <input type="checkbox" id="remember-token" />
+            <span>Remember this browser</span>
+          </label>
+          <button id="load-settings" type="button" class="primary">Load settings</button>
+        </div>
+        <p class="status-message error hidden" id="auth-error"></p>
+      </section>
+
+      <section class="card hidden" id="settings-card">
+        <div class="card-header">
+          <div>
+            <h2>Configuration</h2>
+            <p class="hint">
+              Fields flagged as “Environment override” reflect deploy-time values from environment variables. Updates are persisted but do not apply until the override is removed.
+            </p>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="secondary" id="refresh-settings">Refresh</button>
+          </div>
+        </div>
+        <form id="settings-form">
+          <div class="form-section">
+            <h3>Model locations</h3>
+            <div class="form-grid">
+              <div class="form-row" data-field="classifier_path">
+                <label for="classifier_path">Classifier model path</label>
+                <input type="text" id="classifier_path" class="text-input" required />
+                <p class="hint">Filesystem path for the invoice classification model.</p>
+                <p class="override-note hidden" data-override="classifier_path">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="predictive_path">
+                <label for="predictive_path">Predictive model path</label>
+                <input type="text" id="predictive_path" class="text-input" required />
+                <p class="hint">Filesystem path for the payment prediction model.</p>
+                <p class="override-note hidden" data-override="predictive_path">Environment override active.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Authentication</h3>
+            <div class="form-grid">
+              <div class="form-row" data-field="api_key">
+                <label for="api_key">API key</label>
+                <input type="password" id="api_key" class="text-input" autocomplete="new-password" />
+                <p class="hint">Shared secret required in the <code>X-API-Key</code> header.</p>
+                <p class="override-note hidden" data-override="api_key">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="admin_api_key">
+                <label for="admin_api_key">Admin API key</label>
+                <input type="password" id="admin_api_key" class="text-input" autocomplete="new-password" />
+                <p class="hint">Secret required in the <code>X-Admin-Token</code> header for this portal and the admin API.</p>
+                <p class="override-note hidden" data-override="admin_api_key">Environment override active.</p>
+              </div>
+              <div class="form-row checkbox" data-field="allow_anonymous">
+                <label for="allow_anonymous">Allow anonymous access</label>
+                <input type="checkbox" id="allow_anonymous" />
+                <p class="hint">Permits requests without an API key. Avoid enabling in production.</p>
+                <p class="override-note hidden" data-override="allow_anonymous">Environment override active.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>License</h3>
+            <div class="form-grid">
+              <div class="form-row" data-field="license_public_key_path">
+                <label for="license_public_key_path">License public key path</label>
+                <input type="text" id="license_public_key_path" class="text-input" />
+                <p class="hint">Path to an RSA/EC public key file. Leave blank to manage keys inline.</p>
+                <p class="override-note hidden" data-override="license_public_key_path">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="license_public_key">
+                <label for="license_public_key">Embedded license public key</label>
+                <textarea id="license_public_key" class="text-area" rows="6"></textarea>
+                <p class="hint">Paste the PEM-encoded public key when not using a file path.</p>
+                <p class="override-note hidden" data-override="license_public_key">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="license_algorithm">
+                <label for="license_algorithm">License algorithm</label>
+                <input type="text" id="license_algorithm" class="text-input" required />
+                <p class="hint">Algorithm used to verify license signatures (e.g., RS256).</p>
+                <p class="override-note hidden" data-override="license_algorithm">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="license_revoked_jtis">
+                <label for="license_revoked_jtis">Revoked token IDs</label>
+                <textarea id="license_revoked_jtis" class="text-area" rows="4" placeholder="jti-123&#10;jti-456"></textarea>
+                <p class="hint">One token ID per line. Leave blank to allow all issued tokens.</p>
+                <p class="override-note hidden" data-override="license_revoked_jtis">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="license_revoked_subjects">
+                <label for="license_revoked_subjects">Revoked subjects</label>
+                <textarea id="license_revoked_subjects" class="text-area" rows="4" placeholder="tenant-a&#10;tenant-b"></textarea>
+                <p class="hint">One subject per line to deny for all licenses.</p>
+                <p class="override-note hidden" data-override="license_revoked_subjects">Environment override active.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Request validation</h3>
+            <div class="form-grid">
+              <div class="form-row" data-field="max_upload_bytes">
+                <label for="max_upload_bytes">Max upload size (bytes)</label>
+                <input type="number" id="max_upload_bytes" class="text-input" min="0" step="1" required />
+                <p class="hint">Rejects uploaded files larger than the configured size.</p>
+                <p class="override-note hidden" data-override="max_upload_bytes">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="max_text_length">
+                <label for="max_text_length">Max text length</label>
+                <input type="number" id="max_text_length" class="text-input" min="0" step="1" required />
+                <p class="hint">Upper bound for characters processed by the classifier.</p>
+                <p class="override-note hidden" data-override="max_text_length">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="max_feature_fields">
+                <label for="max_feature_fields">Max feature fields</label>
+                <input type="number" id="max_feature_fields" class="text-input" min="0" step="1" required />
+                <p class="hint">Maximum keys accepted in the predictive features payload.</p>
+                <p class="override-note hidden" data-override="max_feature_fields">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="max_json_body_bytes">
+                <label for="max_json_body_bytes">Max JSON payload (bytes)</label>
+                <input type="number" id="max_json_body_bytes" class="text-input" min="0" step="1" />
+                <p class="hint">Optional ceiling for request bodies. Leave blank to disable.</p>
+                <p class="override-note hidden" data-override="max_json_body_bytes">Environment override active.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Rate limiting</h3>
+            <div class="form-grid">
+              <div class="form-row" data-field="rate_limit_per_minute">
+                <label for="rate_limit_per_minute">Requests per minute</label>
+                <input type="number" id="rate_limit_per_minute" class="text-input" min="0" step="1" />
+                <p class="hint">Optional steady-state throttle. Leave blank to disable.</p>
+                <p class="override-note hidden" data-override="rate_limit_per_minute">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="rate_limit_burst">
+                <label for="rate_limit_burst">Burst allowance</label>
+                <input type="number" id="rate_limit_burst" class="text-input" min="0" step="1" />
+                <p class="hint">Extra burst tokens beyond the per-minute rate.</p>
+                <p class="override-note hidden" data-override="rate_limit_burst">Environment override active.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>CORS policy</h3>
+            <div class="form-grid">
+              <div class="form-row" data-field="cors_trusted_origins">
+                <label for="cors_trusted_origins">Trusted origins</label>
+                <textarea
+                  id="cors_trusted_origins"
+                  class="text-area"
+                  rows="5"
+                  placeholder="https://app.example.com|true&#10;https://portal.example.com"
+                ></textarea>
+                <p class="hint">
+                  One origin per line. Append <code>|true</code> to require credentials. Use <code>*</code> for all origins (without credentials).
+                </p>
+                <p class="override-note hidden" data-override="cors_trusted_origins">Environment override active.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="primary">Save changes</button>
+            <button type="button" class="secondary" id="reset-form">Reset</button>
+          </div>
+          <p class="status-message" id="status-message"></p>
+        </form>
+      </section>
+    </div>
+    <script type="module" src="/static/js/admin.js"></script>
+  </body>
+</html>

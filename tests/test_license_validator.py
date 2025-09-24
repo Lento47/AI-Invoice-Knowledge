@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -16,6 +17,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
+
+os.environ.setdefault("API_KEY", "test-secret")
 
 from ai_invoice.config import settings
 from api.security import reset_license_verifier_cache, require_license_token

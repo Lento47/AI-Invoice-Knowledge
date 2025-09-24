@@ -96,18 +96,27 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 
 ### Configuration
 
-The API reads configuration from environment variables (or a `.env` file). Key knobs include:
+Configuration is now persisted to a JSON document (`data/settings.json` by default). Environment
+variables act as overrides and the web UI at `/admin` provides an authenticated way to review and
+modify settings. See [`docs/settings_management.md`](docs/settings_management.md) for a detailed
+walkthrough.
 
-| Variable                | Default   | Description                                                                 |
-| ----------------------- | --------- | --------------------------------------------------------------------------- |
-| `AI_API_KEY`            | *unset*   | Shared secret required in the `X-API-Key` header for all non-health routes. |
-| `MAX_UPLOAD_BYTES`      | `5242880` | Maximum allowed size for uploaded files (default: 5 MiB).                   |
-| `MAX_TEXT_LENGTH`       | `20000`   | Maximum characters accepted for classification endpoints.                   |
-| `MAX_FEATURE_FIELDS`    | `50`      | Maximum number of keys accepted in predictive feature payloads.             |
-| `MAX_JSON_BODY_BYTES`   | *unset*   | Optional upper bound (bytes) for JSON feature payloads.                     |
-| `RATE_LIMIT_PER_MINUTE` | *unset*   | Reserved for future throttling/telemetry integrations.                      |
+Common overrides:
 
-Set these before starting the server (via `.env` or environment variables) to tune request validation and security.
+| Variable | Default | Description |
+| --- | --- | --- |
+| `AI_API_KEY` / `API_KEY` | *unset* | Shared secret required in the `X-API-Key` header for all non-health routes. |
+| `ADMIN_API_KEY` | *unset* | Token required for the administrative API and UI. Falls back to `AI_API_KEY` if absent. |
+| `ALLOW_ANONYMOUS` | `false` | Allow requests without an API key (not recommended for production). |
+| `MAX_UPLOAD_BYTES` | `5242880` | Maximum allowed size for uploaded invoice files (default: 5 MiB). |
+| `MAX_TEXT_LENGTH` | `20000` | Maximum characters accepted for classification endpoints. |
+| `MAX_FEATURE_FIELDS` | `50` | Maximum number of keys accepted in predictive feature payloads. |
+| `MAX_JSON_BODY_BYTES` | *unset* | Optional upper bound (bytes) for JSON feature payloads. |
+| `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_BURST` | *unset* | Enable request throttling when desired. |
+| `CORS_TRUSTED_ORIGINS` | `*` | Comma-separated origins (`https://app.example.com|true`). |
+
+The admin UI highlights fields that are currently controlled by environment overrides so you can
+decide which values should remain pinned to deployment-time configuration.
 
 ### Windows packaging
 

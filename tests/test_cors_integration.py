@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
+import os
 import sys
 from typing import Iterable
 
@@ -10,6 +11,8 @@ from fastapi import FastAPI
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+os.environ.setdefault("API_KEY", "test-secret")
 
 from api.middleware import configure_middleware
 from ai_invoice.config import TrustedCORSOrigin, settings
@@ -27,7 +30,11 @@ def configure_cors_app(origins: Iterable[TrustedCORSOrigin]):
     """Configure middleware for a temporary FastAPI application."""
 
     previous = settings.cors_trusted_origins
+    previous_allow = settings.allow_anonymous
+    previous_key = settings.api_key
     settings.cors_trusted_origins = list(origins)
+    settings.allow_anonymous = True
+    settings.api_key = None
     app = FastAPI()
     configure_middleware(app)
 
@@ -39,6 +46,8 @@ def configure_cors_app(origins: Iterable[TrustedCORSOrigin]):
         yield app
     finally:
         settings.cors_trusted_origins = previous
+        settings.allow_anonymous = previous_allow
+        settings.api_key = previous_key
 
 
 def _encode_headers(headers: Iterable[tuple[str, str]]) -> list[tuple[bytes, bytes]]:
