@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice Operations Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/invoice_portal.css') }}" />
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="page-header__content">
+        <h1>Invoice Operations Portal</h1>
+        <p class="page-header__subtitle">
+          Upload invoices, classify raw text, and score payment predictions with your licensed features.
+        </p>
+        <nav class="page-header__links">
+          <a href="/" class="page-header__link">API Root</a>
+          <a href="/admin" class="page-header__link">Admin Console</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="portal" id="invoice-portal">
+      <section class="card" id="credentials">
+        <h2>Authentication</h2>
+        <p class="card__lead">
+          Provide the secrets required by <code>X-API-Key</code> authentication and the optional
+          <code>X-License-Token</code> for licensed features.
+        </p>
+        <form class="form-grid" id="credentials-form">
+          <label class="form-field">
+            <span class="form-label">X-API-Key</span>
+            <input type="password" id="api-key" autocomplete="off" placeholder="Enter your API key" />
+          </label>
+          <label class="form-field">
+            <span class="form-label">X-License-Token</span>
+            <input
+              type="password"
+              id="license-token"
+              autocomplete="off"
+              placeholder="Paste your signed license token"
+            />
+          </label>
+          <label class="form-checkbox">
+            <input type="checkbox" id="remember-secrets" />
+            <span>Remember these secrets on this device</span>
+          </label>
+          <p class="form-helper">
+            Feature access is controlled by license flags: <strong>extract</strong> for file uploads,
+            <strong>classify</strong> for text classification, and <strong>predict</strong> for payment scoring.
+          </p>
+        </form>
+      </section>
+
+      <section class="card" id="extract-panel">
+        <div class="card__header">
+          <h2>Invoice Extraction</h2>
+          <span class="feature-badge" aria-label="Requires extract feature">extract</span>
+        </div>
+        <p class="card__lead">
+          Drag-and-drop or browse for a PDF or image invoice. The service will return parsed supplier, totals, line items, and raw text.
+        </p>
+        <form id="extract-form" class="card__body" novalidate>
+          <div class="drop-zone" id="extract-drop-zone">
+            <div class="drop-zone__hint">
+              <strong>Drop invoice files here</strong>
+              <span>or</span>
+            </div>
+            <button type="button" class="button button--outline" id="extract-file-button">Choose a file</button>
+            <input type="file" id="extract-file" name="file" accept=".pdf,.png,.jpg,.jpeg" />
+            <p class="drop-zone__file" id="extract-file-name">No file selected</p>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="button button--primary" id="extract-submit">Extract invoice</button>
+            <div class="loading" id="extract-loading" hidden>Processing…</div>
+          </div>
+        </form>
+        <div class="results" id="extract-result" aria-live="polite"></div>
+      </section>
+
+      <section class="card" id="classify-panel">
+        <div class="card__header">
+          <h2>Text Classification</h2>
+          <span class="feature-badge" aria-label="Requires classify feature">classify</span>
+        </div>
+        <p class="card__lead">
+          Paste raw invoice text to predict the document type. The classifier returns the best-fit label and probability.
+        </p>
+        <form id="classify-form" class="card__body" novalidate>
+          <label class="form-field">
+            <span class="form-label">Invoice text</span>
+            <textarea id="classify-text" rows="8" placeholder="Paste or type invoice contents"></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="button button--primary" id="classify-submit">Classify text</button>
+            <div class="loading" id="classify-loading" hidden>Scoring…</div>
+          </div>
+        </form>
+        <div class="results" id="classify-result" aria-live="polite"></div>
+      </section>
+
+      <section class="card" id="predict-panel">
+        <div class="card__header">
+          <h2>Payment Prediction</h2>
+          <span class="feature-badge" aria-label="Requires predict feature">predict</span>
+        </div>
+        <p class="card__lead">
+          Provide feature key/value pairs to score expected payment timing. You can target the canonical endpoint or the <code>/predict</code> alias.
+        </p>
+        <form id="predict-form" class="card__body" novalidate>
+          <div class="feature-table-wrapper">
+            <table class="feature-table" aria-describedby="predict-panel">
+              <thead>
+                <tr>
+                  <th scope="col">Feature key</th>
+                  <th scope="col">Value</th>
+                  <th scope="col" class="feature-table__actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="feature-rows"></tbody>
+            </table>
+            <button type="button" class="button button--ghost" id="add-feature-row">Add feature</button>
+          </div>
+
+          <div class="form-grid form-grid--compact">
+            <label class="form-field">
+              <span class="form-label">Endpoint</span>
+              <select id="predict-endpoint">
+                <option value="/invoices/predict">/invoices/predict</option>
+                <option value="/predict">/predict</option>
+              </select>
+            </label>
+            <div class="form-actions form-actions--end">
+              <button type="submit" class="button button--primary" id="predict-submit">Score payment</button>
+              <div class="loading" id="predict-loading" hidden>Evaluating…</div>
+            </div>
+          </div>
+        </form>
+        <div class="results" id="predict-result" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="feature-row-template">
+      <tr class="feature-row">
+        <td data-label="Feature key">
+          <input type="text" class="feature-key" placeholder="e.g. amount" />
+        </td>
+        <td data-label="Value">
+          <input type="text" class="feature-value" placeholder="e.g. 950" />
+        </td>
+        <td class="feature-table__actions" data-label="Actions">
+          <button type="button" class="button button--icon remove-feature" aria-label="Remove feature row">
+            ✕
+          </button>
+        </td>
+      </tr>
+    </template>
+
+    <script src="{{ url_for('static', path='js/invoice_portal.js') }}" type="module"></script>
+  </body>
+</html>
