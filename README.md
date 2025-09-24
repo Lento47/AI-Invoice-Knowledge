@@ -54,7 +54,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 
 1. Create a virtual environment and install dependencies (via `uv` or `pip`):
 
-   ```bash
+```bash
    uv sync
    # or
    python -m venv .venv && source .venv/bin/activate
@@ -65,34 +65,34 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 
 3. Start the API locally:
 
-   ```bash
+ ````bash
    uv run uvicorn api.main:app --reload --port 8088
    # or
    python -m uvicorn api.main:app --reload --port 8088
-   ```
+ ````
 
 4. Test the endpoints (remember to include your `X-API-Key` header on authenticated routes):
 
-   ```bash
+````bash
    curl http://localhost:8088/health/
    curl -H "X-API-Key: $AI_API_KEY" -F "file=@data/samples/invoice1.pdf" http://localhost:8088/invoices/extract
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"text":"ACME INVOICE #F-1002 ..."}' http://localhost:8088/invoices/classify
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/invoices/predict
-   ```
+ ````
 
    You can also call `/predict` directly as a shorthand alias for `/invoices/predict`:
 
-   ```bash
+````bash
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
-   ```
+````
 
 5. (Optional) Interact with the classifier management endpoints:
 
-   ```bash
+````bash
    curl -H "X-API-Key: $AI_API_KEY" http://localhost:8088/models/classifier/status
    curl -H "X-API-Key: $AI_API_KEY" -F "file=@data/training/classifier_example.csv" http://localhost:8088/models/classifier/train
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"text":"POS RECEIPT Store 123 Total 11.82"}' http://localhost:8088/models/classifier/classify
-   ```
+````
 
 ### Configuration
 
@@ -122,10 +122,10 @@ decide which values should remain pinned to deployment-time configuration.
 
 Install Tesseract OCR and Poppler for PDF rendering, then bundle the FastAPI server with PyInstaller:
 
-```bash
+````bash
 pip install pyinstaller
 pyinstaller --onefile --name ai_invoice_api --add-data "models;models" -p src --collect-all spacy --collect-all sklearn run_server.py
-```
+````
 
 The resulting executable can be shipped alongside the .NET desktop app. Have the Windows app start the executable and wait for `GET /health/` to return `{"ok": true}` before making requests.
 
@@ -138,15 +138,15 @@ The `dotnet/` folder contains a solution with two projects:
 
 Restore and build:
 
-```powershell
+````powershell
 cd dotnet
 dotnet restore
 dotnet build
-```
+````
 
 The API project wires an `HttpClient` with retries, timeouts, and API-key propagation:
 
-```csharp
+````csharp
 builder.Services
     .AddHttpClient<AIClient>(client =>
     {
@@ -159,7 +159,7 @@ builder.Services
         }
     })
     .AddPolicyHandler(RetryPolicy());
-```
+````
 
 Use `AIClient` in your controllers or background services once registered.
 
