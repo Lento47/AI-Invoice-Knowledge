@@ -40,6 +40,16 @@ const elements = {
     loading: document.getElementById('predict-loading'),
     result: document.getElementById('predict-result'),
   },
+tica: {
+  form: document.getElementById('tica-form'),
+  tableBody: document.getElementById('tica-rows'),
+  template: document.getElementById('tica-row-template'),
+  addItem: document.getElementById('add-tica-item'),
+  submit: document.getElementById('tica-submit'),
+  loading: document.getElementById('tica-loading'),
+  result: document.getElementById('tica-result'),
+},
+
 };
 
 function escapeHtml(value) {
@@ -88,23 +98,60 @@ function normaliseErrorDetail(detail) {
   return String(detail);
 }
 
-async function sendRequest(url, { method = 'GET', headers = new Headers(), body = undefined } = {}) {
+async function sendRequest(
+  url,
+  { method = 'GET', headers = new Headers(), body = undefined, responseType = 'auto' } = {},
+) {
   const response = await fetch(url, { method, headers, body });
-  const contentType = response.headers.get('Content-Type') || '';
-  const isJson = contentType.includes('application/json');
-  let payload;
-  try {
-    payload = isJson ? await response.json() : await response.text();
-  } catch (error) {
-    payload = isJson ? {} : '';
-  }
 
+  // Handle non-2xx with best-effort body parsing for detail
   if (!response.ok) {
-    const detail = normaliseErrorDetail(payload);
-    throw new ApiError(response.status, detail, payload);
+    let parsed;
+    try {
+      const text = await response.text();
+      if (text) {
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = text;
+        }
+      } else {
+        parsed = '';
+      }
+    } catch {
+      parsed = '';
+    }
+    const detail = normaliseErrorDetail(parsed);
+    throw new ApiError(response.status, detail, parsed);
   }
 
-  return payload;
+  // Success: honor explicit response type
+  if (responseType === 'binary') {
+    return await response.blob();
+  }
+  if (responseType === 'text') {
+    try {
+      return await response.text();
+    } catch {
+      return '';
+    }
+  }
+
+  // Auto-detect
+  const contentType = response.headers.get('Content-Type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return await response.json();
+    } catch {
+      return {};
+    }
+  }
+
+  try {
+    return await response.text();
+  } catch {
+    return '';
+  }
 }
 
 function readCredentials() {
@@ -260,6 +307,18 @@ function formatProbability(value) {
       maximumFractionDigits: 2,
     }) + '%',
   );
+}
+
+function normaliseString(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+function parseDecimalInput(value) {
+  const trimmed = normaliseString(value);
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function renderExtraction(result) {
@@ -422,6 +481,115 @@ function addFeatureRow(key = '', value = '') {
   }
 
   tbody.appendChild(fragment);
+}
+
+function triggerDownload(blob, filename) {
+  if (!(blob instanceof Blob)) return;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function collectTicaItems() {
+  const rows = Array.from(elements.tica.tableBody?.querySelectorAll('.tica-row') ?? []);
+  const items = [];
+  let hasError = false;
+
+  rows.forEach((row) => {
+    row.classList.remove('has-error');
+    const descriptionField = row.querySelector('.tica-description');
+    const hsField = row.querySelector('.tica-hs');
+    const originField = row.querySelector('.tica-origin');
+    const quantityField = row.querySelector('.tica-quantity');
+    const unitField = row.querySelector('.tica-unit-value');
+    const totalField = row.querySelector('.tica-total-value');
+
+    const description = normaliseString(descriptionField?.value);
+    const hs = normaliseString(hsField?.value);
+    const origin = normaliseString(originField?.value);
+    const quantityRaw = quantityField?.value;
+    const unitRaw = unitField?.value;
+    const totalRaw = totalField?.value;
+
+    const isEmpty =
+      !description &&
+      !normaliseString(quantityRaw) &&
+      !normaliseString(unitRaw) &&
+      !normaliseString(totalRaw) &&
+      !hs &&
+      !origin;
+
+    if (isEmpty) return;
+
+    const quantity = parseDecimalInput(quantityRaw);
+    const unitValue = parseDecimalInput(unitRaw);
+    const totalValue = parseDecimalInput(totalRaw);
+
+    if (!description || quantity === null || unitValue === null) {
+      row.classList.add('has-error');
+      hasError = true;
+      return;
+    }
+
+    const item = {
+      description,
+      quantity,
+      unit_value: unitValue,
+    };
+
+    if (totalValue !== null) item.total_value = totalValue;
+    if (hs) item.hs_code = hs;
+    if (origin) item.country_of_origin = origin;
+
+    items.push(item);
+  });
+
+  return { items, hasError };
+}
+
+function ensureTicaRows() {
+  const rows = elements.tica.tableBody?.querySelectorAll('.tica-row');
+  if (!rows || rows.length > 0) return;
+  addTicaRow();
+}
+
+function addTicaRow(data = {}) {
+  const template = elements.tica.template;
+  const tbody = elements.tica.tableBody;
+  if (!template || !tbody) return;
+
+  const prototypeRow = template.content.firstElementChild;
+  if (!prototypeRow) return;
+
+  const row = prototypeRow.cloneNode(true);
+  const description = row.querySelector('.tica-description');
+  const hs = row.querySelector('.tica-hs');
+  const origin = row.querySelector('.tica-origin');
+  const quantity = row.querySelector('.tica-quantity');
+  const unitValue = row.querySelector('.tica-unit-value');
+  const totalValue = row.querySelector('.tica-total-value');
+  const removeButton = row.querySelector('.remove-tica-item');
+
+  if (description) description.value = data.description ?? '';
+  if (hs) hs.value = data.hs_code ?? '';
+  if (origin) origin.value = data.country_of_origin ?? '';
+  if (quantity) quantity.value = data.quantity ?? '';
+  if (unitValue) unitValue.value = data.unit_value ?? '';
+  if (totalValue) totalValue.value = data.total_value ?? '';
+
+  if (removeButton) {
+    removeButton.addEventListener('click', () => {
+      row.remove();
+      ensureTicaRows();
+    });
+  }
+
+  tbody.appendChild(row);
 }
 
 function updateFileNameLabel() {
@@ -640,14 +808,156 @@ function initialisePredictTable() {
   sampleRows.forEach(([key, value]) => addFeatureRow(key, value));
 }
 
+function bindTicaForm() {
+  const { form, submit, loading, result, addItem } = elements.tica;
+  if (!form || !submit || !loading || !result || !addItem) return;
+
+  addItem.addEventListener('click', () => addTicaRow());
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    clearResult(result);
+
+    const formData = new FormData(form);
+    const invoiceNumber = normaliseString(formData.get('invoice_number'));
+    const issueDate = normaliseString(formData.get('issue_date'));
+    const exporterName = normaliseString(formData.get('exporter_name'));
+    const exporterId = normaliseString(formData.get('exporter_id'));
+    const importerName = normaliseString(formData.get('importer_name'));
+    const importerId = normaliseString(formData.get('importer_id'));
+    const currency = normaliseString(formData.get('currency'));
+    const subtotal = parseDecimalInput(formData.get('subtotal'));
+    const tax = parseDecimalInput(formData.get('tax'));
+    const total = parseDecimalInput(formData.get('total'));
+
+    if (!invoiceNumber) {
+      renderError(result, 'Invoice number is required for the TICA document.', 400);
+      return;
+    }
+    if (!issueDate) {
+      renderError(result, 'Provide an issue date (YYYY-MM-DD).', 400);
+      return;
+    }
+    if (!exporterName || !exporterId) {
+      renderError(result, 'Exporter name and identification are required.', 400);
+      return;
+    }
+    if (!importerName || !importerId) {
+      renderError(result, 'Importer name and identification are required.', 400);
+      return;
+    }
+    if (!currency) {
+      renderError(result, 'Specify the currency code.', 400);
+      return;
+    }
+    if (subtotal === null || tax === null || total === null) {
+      renderError(result, 'Subtotal, tax, and total must be numeric values.', 400);
+      return;
+    }
+
+    const { items, hasError } = collectTicaItems();
+    if (hasError) {
+      renderError(result, 'Each goods line must include a description, quantity, and unit value.', 400);
+      return;
+    }
+    if (items.length === 0) {
+      renderError(result, 'Add at least one goods line before generating the PDF.', 400);
+      return;
+    }
+
+    const payload = {
+      invoice_number: invoiceNumber,
+      issue_date: issueDate,
+      exporter_name: exporterName,
+      exporter_id: exporterId,
+      importer_name: importerName,
+      importer_id: importerId,
+      currency,
+      subtotal,
+      tax,
+      total,
+      items,
+    };
+
+    const optionalFields = {
+      exporter_address: normaliseString(formData.get('exporter_address')),
+      importer_address: normaliseString(formData.get('importer_address')),
+      customs_reference: normaliseString(formData.get('customs_reference')),
+      regime: normaliseString(formData.get('regime')),
+      incoterm: normaliseString(formData.get('incoterm')),
+      transport_mode: normaliseString(formData.get('transport_mode')),
+      destination_port: normaliseString(formData.get('destination_port')),
+      notes: normaliseString(formData.get('notes')),
+    };
+
+    Object.entries(optionalFields).forEach(([key, value]) => {
+      if (value) payload[key] = value;
+    });
+
+    persistCredentialsIfNeeded();
+    setLoading(submit, loading, true);
+    const headers = buildHeaders({ 'Content-Type': 'application/json' });
+    const filename = `tica_invoice_${invoiceNumber}.pdf`;
+
+    try {
+      const blob = await sendRequest('/invoices/tica-pdf', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        responseType: 'binary',
+      });
+      triggerDownload(blob, filename);
+      const html = `
+        <div class="result-card">
+          <h3>PDF generated</h3>
+          <p>The customs document was downloaded as <strong>${escapeHtml(filename)}</strong>.</p>
+        </div>
+      `;
+      setResult(result, html);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        renderError(result, error.message, error.status);
+      } else {
+        renderError(result, error?.message ?? 'Unexpected network error.', undefined);
+      }
+    } finally {
+      setLoading(submit, loading, false);
+    }
+  });
+}
+
+function initialiseTicaTable() {
+  const sampleItems = [
+    {
+      description: 'Equipo de oficina',
+      hs_code: '8471.30',
+      country_of_origin: 'CN',
+      quantity: '10',
+      unit_value: '150',
+    },
+  ];
+  sampleItems.forEach((item) => addTicaRow(item));
+  ensureTicaRows();
+
+  const issueDate = document.getElementById('tica-issue-date');
+  if (issueDate && !issueDate.value) {
+    const now = new Date();
+    const iso = now.toISOString().slice(0, 10);
+    issueDate.value = iso;
+  }
+}
+
 function init() {
   restoreCredentials();
   bindCredentialPersistence();
   bindExtractForm();
   bindClassifyForm();
   bindPredictForm();
+  bindTicaForm();
   setupDropZone();
   initialisePredictTable();
+  initialiseTicaTable();
+
 }
 
 init();

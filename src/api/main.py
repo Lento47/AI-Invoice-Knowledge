@@ -31,7 +31,7 @@ if not settings.api_key and not getattr(settings, "allow_anonymous", False):
 
 from .license_validator import LicenseClaims, ensure_feature, require_feature_flag
 from .middleware import configure_middleware
-from .routers import admin, health, invoices, models, predictive
+from .routers import admin, health, invoices, models, predictive, tica
 from .routers.invoices import PredictRequest, predict_from_features
 
 
@@ -55,6 +55,7 @@ app.include_router(invoices.router)
 app.include_router(models.router)
 app.include_router(predictive.router)
 app.include_router(admin.router)
+app.include_router(tica.router)
 
 
 @app.get("/")
