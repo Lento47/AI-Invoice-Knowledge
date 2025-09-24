@@ -86,7 +86,8 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
 ````
 
-5. Open the interactive portal at [http://localhost:8088/portal](http://localhost:8088/portal) to upload invoices, classify text, score predictions, and export Costa Rica TICA-compliant customs PDFs. The responsive UI surfaces validation errors (401/403/413) directly and can optionally remember your API key/license token. See [docs/invoice_portal.md](docs/invoice_portal.md) for a guided tour of each workflow.
+5. Open the interactive portal at http://localhost:8088/portal to upload invoices, classify text, and score predictions from the browser. If your build includes the customs module, you can also export Costa Rica TICA-compliant PDFs. The UI surfaces validation errors (401/403/413) directly and can optionally remember your API key/license token. See docs/invoice_portal.md for a guided tour of each workflow.
+
 
 6. (Optional) Interact with the classifier management endpoints:
 

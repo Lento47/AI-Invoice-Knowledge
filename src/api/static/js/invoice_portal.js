@@ -40,15 +40,16 @@ const elements = {
     loading: document.getElementById('predict-loading'),
     result: document.getElementById('predict-result'),
   },
-  tica: {
-    form: document.getElementById('tica-form'),
-    tableBody: document.getElementById('tica-rows'),
-    template: document.getElementById('tica-row-template'),
-    addItem: document.getElementById('add-tica-item'),
-    submit: document.getElementById('tica-submit'),
-    loading: document.getElementById('tica-loading'),
-    result: document.getElementById('tica-result'),
-  },
+tica: {
+  form: document.getElementById('tica-form'),
+  tableBody: document.getElementById('tica-rows'),
+  template: document.getElementById('tica-row-template'),
+  addItem: document.getElementById('add-tica-item'),
+  submit: document.getElementById('tica-submit'),
+  loading: document.getElementById('tica-loading'),
+  result: document.getElementById('tica-result'),
+},
+
 };
 
 function escapeHtml(value) {
@@ -103,51 +104,52 @@ async function sendRequest(
 ) {
   const response = await fetch(url, { method, headers, body });
 
+  // Handle non-2xx with best-effort body parsing for detail
   if (!response.ok) {
     let parsed;
-    let detail;
     try {
       const text = await response.text();
       if (text) {
         try {
           parsed = JSON.parse(text);
-        } catch (parseError) {
+        } catch {
           parsed = text;
         }
       } else {
         parsed = '';
       }
-    } catch (readError) {
+    } catch {
       parsed = '';
     }
-    detail = normaliseErrorDetail(parsed);
+    const detail = normaliseErrorDetail(parsed);
     throw new ApiError(response.status, detail, parsed);
   }
 
+  // Success: honor explicit response type
   if (responseType === 'binary') {
     return await response.blob();
   }
-
   if (responseType === 'text') {
     try {
       return await response.text();
-    } catch (error) {
+    } catch {
       return '';
     }
   }
 
+  // Auto-detect
   const contentType = response.headers.get('Content-Type') || '';
   if (contentType.includes('application/json')) {
     try {
       return await response.json();
-    } catch (error) {
+    } catch {
       return {};
     }
   }
 
   try {
     return await response.text();
-  } catch (error) {
+  } catch {
     return '';
   }
 }
@@ -308,22 +310,15 @@ function formatProbability(value) {
 }
 
 function normaliseString(value) {
-  if (value === null || value === undefined) {
-    return '';
-  }
+  if (value === null || value === undefined) return '';
   return String(value).trim();
 }
 
 function parseDecimalInput(value) {
   const trimmed = normaliseString(value);
-  if (!trimmed) {
-    return null;
-  }
+  if (!trimmed) return null;
   const parsed = Number(trimmed);
-  if (Number.isNaN(parsed)) {
-    return null;
-  }
-  return parsed;
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function renderExtraction(result) {
@@ -489,9 +484,7 @@ function addFeatureRow(key = '', value = '') {
 }
 
 function triggerDownload(blob, filename) {
-  if (!(blob instanceof Blob)) {
-    return;
-  }
+  if (!(blob instanceof Blob)) return;
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -531,9 +524,7 @@ function collectTicaItems() {
       !hs &&
       !origin;
 
-    if (isEmpty) {
-      return;
-    }
+    if (isEmpty) return;
 
     const quantity = parseDecimalInput(quantityRaw);
     const unitValue = parseDecimalInput(unitRaw);
@@ -551,15 +542,9 @@ function collectTicaItems() {
       unit_value: unitValue,
     };
 
-    if (totalValue !== null) {
-      item.total_value = totalValue;
-    }
-    if (hs) {
-      item.hs_code = hs;
-    }
-    if (origin) {
-      item.country_of_origin = origin;
-    }
+    if (totalValue !== null) item.total_value = totalValue;
+    if (hs) item.hs_code = hs;
+    if (origin) item.country_of_origin = origin;
 
     items.push(item);
   });
@@ -569,23 +554,17 @@ function collectTicaItems() {
 
 function ensureTicaRows() {
   const rows = elements.tica.tableBody?.querySelectorAll('.tica-row');
-  if (!rows || rows.length > 0) {
-    return;
-  }
+  if (!rows || rows.length > 0) return;
   addTicaRow();
 }
 
 function addTicaRow(data = {}) {
   const template = elements.tica.template;
   const tbody = elements.tica.tableBody;
-  if (!template || !tbody) {
-    return;
-  }
+  if (!template || !tbody) return;
 
   const prototypeRow = template.content.firstElementChild;
-  if (!prototypeRow) {
-    return;
-  }
+  if (!prototypeRow) return;
 
   const row = prototypeRow.cloneNode(true);
   const description = row.querySelector('.tica-description');
@@ -596,24 +575,12 @@ function addTicaRow(data = {}) {
   const totalValue = row.querySelector('.tica-total-value');
   const removeButton = row.querySelector('.remove-tica-item');
 
-  if (description) {
-    description.value = data.description ?? '';
-  }
-  if (hs) {
-    hs.value = data.hs_code ?? '';
-  }
-  if (origin) {
-    origin.value = data.country_of_origin ?? '';
-  }
-  if (quantity) {
-    quantity.value = data.quantity ?? '';
-  }
-  if (unitValue) {
-    unitValue.value = data.unit_value ?? '';
-  }
-  if (totalValue) {
-    totalValue.value = data.total_value ?? '';
-  }
+  if (description) description.value = data.description ?? '';
+  if (hs) hs.value = data.hs_code ?? '';
+  if (origin) origin.value = data.country_of_origin ?? '';
+  if (quantity) quantity.value = data.quantity ?? '';
+  if (unitValue) unitValue.value = data.unit_value ?? '';
+  if (totalValue) totalValue.value = data.total_value ?? '';
 
   if (removeButton) {
     removeButton.addEventListener('click', () => {
@@ -843,9 +810,7 @@ function initialisePredictTable() {
 
 function bindTicaForm() {
   const { form, submit, loading, result, addItem } = elements.tica;
-  if (!form || !submit || !loading || !result || !addItem) {
-    return;
-  }
+  if (!form || !submit || !loading || !result || !addItem) return;
 
   addItem.addEventListener('click', () => addTicaRow());
 
@@ -926,9 +891,7 @@ function bindTicaForm() {
     };
 
     Object.entries(optionalFields).forEach(([key, value]) => {
-      if (value) {
-        payload[key] = value;
-      }
+      if (value) payload[key] = value;
     });
 
     persistCredentialsIfNeeded();
@@ -994,6 +957,7 @@ function init() {
   setupDropZone();
   initialisePredictTable();
   initialiseTicaTable();
+
 }
 
 init();

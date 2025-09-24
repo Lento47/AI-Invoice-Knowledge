@@ -92,7 +92,8 @@ a:focus {
   margin: -48px auto 64px;
   padding: 0 24px 64px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+
   gap: 32px;
 }
 
@@ -135,7 +136,7 @@ a:focus {
 }
 
 .form-grid--responsive {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 }
 
 .form-grid--compact {
@@ -361,7 +362,9 @@ textarea {
   border: 1px solid rgba(15, 23, 42, 0.05);
   border-radius: var(--radius-medium);
   overflow: hidden;
-  background: #fff;
+background: #fff;
+box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.03);
+
 }
 
 .feature-table th,
@@ -560,14 +563,14 @@ code {
     padding: 22px;
   }
 
-  .page-header {
-    padding: 40px 20px 36px;
-  }
+.page-header {
+  padding: 40px 20px 36px;
+}
 
-  .page-header__links {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
+.page-header__links {
+  flex-wrap: wrap;
+  gap: 12px;
+}
 
   .form-actions {
     flex-direction: column;
