@@ -9,8 +9,6 @@ from fastapi import Request
 from fastapi.responses import StreamingResponse
 from starlette.templating import _TemplateResponse
 
-from starlette.templating import _TemplateResponse
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(PROJECT_ROOT / "src"))
 
@@ -24,7 +22,6 @@ try:
     from api.routers import tica  # noqa: F401
 except ImportError:
     tica = None
-
 
 
 def _build_request() -> Request:
@@ -60,7 +57,6 @@ def test_invoice_portal_template_served() -> None:
         assert 'id="tica-form"' in rendered
 
 
-
 def test_invoice_portal_static_asset_paths_resolve() -> None:
     css_path = app.url_path_for("static", path="css/invoice_portal.css")
     js_path = app.url_path_for("static", path="js/invoice_portal.js")
@@ -73,6 +69,8 @@ def test_invoice_portal_static_asset_paths_resolve() -> None:
 
     assert css_file.exists()
     assert js_file.exists()
+
+
 async def _collect_body(response: StreamingResponse) -> bytes:
     chunks: list[bytes] = []
     async for chunk in response.body_iterator:

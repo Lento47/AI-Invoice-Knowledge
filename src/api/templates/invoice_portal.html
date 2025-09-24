@@ -21,6 +21,7 @@
     </header>
 
     <main class="portal" id="invoice-portal">
+      <!-- Authentication -->
       <section class="card" id="credentials">
         <h2>Authentication</h2>
         <p class="card__lead">
@@ -52,6 +53,7 @@
         </form>
       </section>
 
+      <!-- Invoice Extraction -->
       <section class="card" id="extract-panel">
         <div class="card__header">
           <h2>Invoice Extraction</h2>
@@ -78,6 +80,7 @@
         <div class="results" id="extract-result" aria-live="polite"></div>
       </section>
 
+      <!-- Text Classification -->
       <section class="card" id="classify-panel">
         <div class="card__header">
           <h2>Text Classification</h2>
@@ -99,6 +102,7 @@
         <div class="results" id="classify-result" aria-live="polite"></div>
       </section>
 
+      <!-- Payment Prediction -->
       <section class="card" id="predict-panel">
         <div class="card__header">
           <h2>Payment Prediction</h2>
@@ -138,169 +142,146 @@
         </form>
         <div class="results" id="predict-result" aria-live="polite"></div>
       </section>
-<section class="card card--wide" id="tica-panel">
-  <div class="card__header">
-    <h2>TICA Customs PDF</h2>
-    <span class="feature-badge" aria-label="Requires extract feature">extract</span>
-  </div>
 
-  <p class="card__lead">
-    Compile the information required by Costa Rica’s
-    <abbr title="Tecnología de Información para el Control Aduanero">TICA</abbr>
-    system and export a customs-ready invoice PDF.
-  </p>
+      <!-- TICA Customs PDF -->
+      <section class="card card--wide" id="tica-panel">
+        <div class="card__header">
+          <h2>TICA Customs PDF</h2>
+          <span class="feature-badge" aria-label="Requires extract feature">extract</span>
+        </div>
+        <p class="card__lead">
+          Compile the information required by Costa Rica's <abbr title="Tecnología de Información para el Control Aduanero">TICA</abbr>
+          system and export a customs-ready invoice PDF.
+        </p>
+        <form id="tica-form" class="card__body" novalidate>
+          <div class="form-section">
+            <h3 class="form-section__title">Invoice metadata</h3>
+            <div class="form-grid form-grid--responsive">
+              <label class="form-field">
+                <span class="form-label">Invoice number</span>
+                <input type="text" id="tica-invoice-number" name="invoice_number" placeholder="Reference number" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Issue date</span>
+                <input type="date" id="tica-issue-date" name="issue_date" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Customs reference</span>
+                <input type="text" id="tica-customs-reference" name="customs_reference" placeholder="DUA, DUT, etc." />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Regime</span>
+                <input type="text" id="tica-regime" name="regime" placeholder="Importación definitiva, tránsito..." />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Incoterm</span>
+                <input type="text" id="tica-incoterm" name="incoterm" placeholder="FOB, CIF, EXW" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Transport mode</span>
+                <input type="text" id="tica-transport-mode" name="transport_mode" placeholder="Marítimo, aéreo, terrestre" />
+              </label>
+              <label class="form-field form-field--wide">
+                <span class="form-label">Destination customs office</span>
+                <input type="text" id="tica-destination-port" name="destination_port" placeholder="Puerto Caldera, Peñas Blancas..." />
+              </label>
+            </div>
+          </div>
 
-  <form id="tica-form" class="card__body" novalidate>
-    <!-- Invoice metadata -->
-    <div class="form-section">
-      <h3 class="form-section__title">Invoice metadata</h3>
-      <div class="form-grid form-grid--responsive">
-        <label class="form-field">
-          <span class="form-label">Invoice number</span>
-          <input type="text" id="tica-invoice-number" name="invoice_number" placeholder="Reference number" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Issue date</span>
-          <input type="date" id="tica-issue-date" name="issue_date" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Customs reference</span>
-          <input type="text" id="tica-customs-reference" name="customs_reference" placeholder="DUA, DUT, etc." />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Regime</span>
-          <input type="text" id="tica-regime" name="regime" placeholder="Importación definitiva, tránsito..." />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Incoterm</span>
-          <input type="text" id="tica-incoterm" name="incoterm" placeholder="FOB, CIF, EXW" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Transport mode</span>
-          <input type="text" id="tica-transport-mode" name="transport_mode" placeholder="Marítimo, aéreo, terrestre" />
-        </label>
-        <label class="form-field form-field--wide">
-          <span class="form-label">Destination customs office</span>
-          <input type="text" id="tica-destination-port" name="destination_port" placeholder="Puerto Caldera, Peñas Blancas..." />
-        </label>
-      </div>
-    </div>
+          <div class="form-section">
+            <h3 class="form-section__title">Exporter</h3>
+            <div class="form-grid form-grid--responsive">
+              <label class="form-field">
+                <span class="form-label">Name</span>
+                <input type="text" id="tica-exporter-name" name="exporter_name" placeholder="Company or person" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Tax ID</span>
+                <input type="text" id="tica-exporter-id" name="exporter_id" placeholder="Número de identificación" />
+              </label>
+              <label class="form-field form-field--wide">
+                <span class="form-label">Address</span>
+                <textarea id="tica-exporter-address" name="exporter_address" rows="2" placeholder="Dirección completa"></textarea>
+              </label>
+            </div>
+          </div>
 
-    <!-- Exporter -->
-    <div class="form-section">
-      <h3 class="form-section__title">Exporter</h3>
-      <div class="form-grid form-grid--responsive">
-        <label class="form-field">
-          <span class="form-label">Name</span>
-          <input type="text" id="tica-exporter-name" name="exporter_name" placeholder="Company or person" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Tax ID</span>
-          <input type="text" id="tica-exporter-id" name="exporter_id" placeholder="Número de identificación" />
-        </label>
-        <label class="form-field form-field--wide">
-          <span class="form-label">Address</span>
-          <textarea id="tica-exporter-address" name="exporter_address" rows="2" placeholder="Dirección completa"></textarea>
-        </label>
-      </div>
-    </div>
+          <div class="form-section">
+            <h3 class="form-section__title">Importer</h3>
+            <div class="form-grid form-grid--responsive">
+              <label class="form-field">
+                <span class="form-label">Name</span>
+                <input type="text" id="tica-importer-name" name="importer_name" placeholder="Destinatario" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Tax ID</span>
+                <input type="text" id="tica-importer-id" name="importer_id" placeholder="Número de identificación" />
+              </label>
+              <label class="form-field form-field--wide">
+                <span class="form-label">Address</span>
+                <textarea id="tica-importer-address" name="importer_address" rows="2" placeholder="Dirección completa"></textarea>
+              </label>
+            </div>
+          </div>
 
-    <!-- Importer -->
-    <div class="form-section">
-      <h3 class="form-section__title">Importer</h3>
-      <div class="form-grid form-grid--responsive">
-        <label class="form-field">
-          <span class="form-label">Name</span>
-          <input type="text" id="tica-importer-name" name="importer_name" placeholder="Destinatario" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Tax ID</span>
-          <input type="text" id="tica-importer-id" name="importer_id" placeholder="Número de identificación" />
-        </label>
-        <label class="form-field form-field--wide">
-          <span class="form-label">Address</span>
-          <textarea id="tica-importer-address" name="importer_address" rows="2" placeholder="Dirección completa"></textarea>
-        </label>
-      </div>
-    </div>
+          <div class="form-section">
+            <h3 class="form-section__title">Goods declaration</h3>
+            <div class="table-scroll" role="group" aria-label="Goods listed for the customs document">
+              <table class="feature-table feature-table--tight" aria-describedby="tica-panel">
+                <thead>
+                  <tr>
+                    <th scope="col">Description</th>
+                    <th scope="col">HS code</th>
+                    <th scope="col">Country of origin</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">Unit value</th>
+                    <th scope="col">Total value</th>
+                    <th scope="col" class="feature-table__actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tica-rows"></tbody>
+              </table>
+            </div>
+            <p class="form-helper">Leave total value blank to calculate quantity × unit value automatically.</p>
+            <button type="button" class="button button--ghost" id="add-tica-item">Add goods line</button>
+          </div>
 
-    <!-- Goods declaration -->
-    <div class="form-section">
-      <h3 class="form-section__title">Goods declaration</h3>
+          <div class="form-section">
+            <h3 class="form-section__title">Totals &amp; notes</h3>
+            <div class="form-grid form-grid--responsive">
+              <label class="form-field">
+                <span class="form-label">Currency</span>
+                <input type="text" id="tica-currency" name="currency" placeholder="USD" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Subtotal</span>
+                <input type="number" id="tica-subtotal" name="subtotal" step="0.01" min="0" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Tax</span>
+                <input type="number" id="tica-tax" name="tax" step="0.01" min="0" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">Total</span>
+                <input type="number" id="tica-total" name="total" step="0.01" min="0" />
+              </label>
+              <label class="form-field form-field--wide">
+                <span class="form-label">Notes</span>
+                <textarea id="tica-notes" name="notes" rows="3" placeholder="Instrucciones o sellos especiales"></textarea>
+              </label>
+            </div>
+          </div>
 
-      <div class="table-scroll" role="group" aria-label="Goods listed for the customs document">
-        <table class="feature-table feature-table--tight" aria-describedby="tica-panel">
-          <thead>
-            <tr>
-              <th scope="col">Description</th>
-              <th scope="col">HS code</th>
-              <th scope="col">Country of origin</th>
-              <th scope="col">Quantity</th>
-              <th scope="col">Unit value</th>
-              <th scope="col">Total value</th>
-              <th scope="col" class="feature-table__actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="tica-rows"></tbody>
-        </table>
-      </div>
+          <div class="form-actions">
+            <button type="submit" class="button button--primary" id="tica-submit">Generate TICA PDF</button>
+            <div class="loading" id="tica-loading" hidden>Generating…</div>
+          </div>
+        </form>
+        <div class="results" id="tica-result" aria-live="polite"></div>
+      </section>
+    </main>
 
-      <!-- Row template used by JS (addTicaRow) -->
-      <template id="tica-row-template">
-        <tr class="tica-row">
-          <td><input type="text" class="tica-description" placeholder="Item description" /></td>
-          <td><input type="text" class="tica-hs" placeholder="8471.30" /></td>
-          <td><input type="text" class="tica-origin" placeholder="CR/US/CN…" /></td>
-          <td><input type="number" class="tica-quantity" step="any" min="0" placeholder="0" /></td>
-          <td><input type="number" class="tica-unit-value" step="0.01" min="0" placeholder="0.00" /></td>
-          <td><input type="number" class="tica-total-value" step="0.01" min="0" placeholder="(auto)" /></td>
-          <td class="feature-table__actions">
-            <button type="button" class="button button--icon remove-tica-item" aria-label="Remove row">×</button>
-          </td>
-        </tr>
-      </template>
-
-      <p class="form-helper">Leave total value blank to calculate quantity × unit value automatically.</p>
-      <button type="button" class="button button--ghost" id="add-tica-item">Add goods line</button>
-    </div>
-
-    <!-- Totals & notes -->
-    <div class="form-section">
-      <h3 class="form-section__title">Totals &amp; notes</h3>
-      <div class="form-grid form-grid--responsive">
-        <label class="form-field">
-          <span class="form-label">Currency</span>
-          <input type="text" id="tica-currency" name="currency" placeholder="USD" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Subtotal</span>
-          <input type="number" id="tica-subtotal" name="subtotal" step="0.01" min="0" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Tax</span>
-          <input type="number" id="tica-tax" name="tax" step="0.01" min="0" />
-        </label>
-        <label class="form-field">
-          <span class="form-label">Total</span>
-          <input type="number" id="tica-total" name="total" step="0.01" min="0" />
-        </label>
-        <label class="form-field form-field--wide">
-          <span class="form-label">Notes</span>
-          <textarea id="tica-notes" name="notes" rows="3" placeholder="Instrucciones o sellos especiales"></textarea>
-        </label>
-      </div>
-    </div>
-
-    <div class="form-actions">
-      <button type="submit" class="button button--primary" id="tica-submit">Generate TICA PDF</button>
-      <div class="loading" id="tica-loading" hidden>Generating…</div>
-    </div>
-  </form>
-
-  <div class="results" id="tica-result" aria-live="polite"></div>
-</section>
-
-
+    <!-- Feature row template -->
     <template id="feature-row-template">
       <tr class="feature-row">
         <td data-label="Feature key">
@@ -317,31 +298,34 @@
       </tr>
     </template>
 
-<template id="tica-row-template">
-  <tr class="tica-row">
-    <td data-label="Description">
-      <textarea class="tica-description" rows="2" placeholder="Describe the goods"></textarea>
-    </td>
-    <td data-label="HS code">
-      <input type="text" class="tica-hs" placeholder="e.g. 4810.19" />
-    </td>
-    <td data-label="Country of origin">
-      <input type="text" class="tica-origin" placeholder="CR, MX, CN" />
-    </td>
-    <td data-label="Quantity">
-      <input type="number" class="tica-quantity" step="0.001" min="0" />
-    </td>
-    <td data-label="Unit value">
-      <input type="number" class="tica-unit-value" step="0.01" min="0" />
-    </td>
-    <td data-label="Total value">
-      <input type="number" class="tica-total-value" step="0.01" min="0" placeholder="(auto)" />
-    </td>
-    <td class="feature-table__actions" data-label="Actions">
-      <button type="button" class="button button--icon remove-tica-item" aria-label="Remove goods line">✕</button>
-    </td>
-  </tr>
-</template>
+    <!-- TICA row template -->
+    <template id="tica-row-template">
+      <tr class="tica-row">
+        <td data-label="Description">
+          <textarea class="tica-description" rows="2" placeholder="Describe the goods"></textarea>
+        </td>
+        <td data-label="HS code">
+          <input type="text" class="tica-hs" placeholder="e.g. 4810.19" />
+        </td>
+        <td data-label="Country of origin">
+          <input type="text" class="tica-origin" placeholder="CR, MX, CN" />
+        </td>
+        <td data-label="Quantity">
+          <input type="number" class="tica-quantity" step="0.001" min="0" />
+        </td>
+        <td data-label="Unit value">
+          <input type="number" class="tica-unit-value" step="0.01" min="0" />
+        </td>
+        <td data-label="Total value">
+          <input type="number" class="tica-total-value" step="0.01" min="0" placeholder="(auto)" />
+        </td>
+        <td class="feature-table__actions" data-label="Actions">
+          <button type="button" class="button button--icon remove-tica-item" aria-label="Remove goods line">
+            ✕
+          </button>
+        </td>
+      </tr>
+    </template>
 
     <script src="{{ url_for('static', path='js/invoice_portal.js') }}" type="module"></script>
   </body>

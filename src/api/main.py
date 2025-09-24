@@ -47,8 +47,17 @@ app = FastAPI(title="AI Invoice System")
 configure_middleware(app)
 
 _BASE_DIR = Path(__file__).resolve().parent
-_TEMPLATES = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
-app.mount("/static", StaticFiles(directory=str(_BASE_DIR / "static")), name="static")
+_TEMPLATE_DIR = _BASE_DIR / "templates"
+_STATIC_DIR = _BASE_DIR / "static"
+
+_TEMPLATES = Jinja2Templates(directory=str(_TEMPLATE_DIR))
+
+if _STATIC_DIR.is_dir():
+    _STATIC_FILES = StaticFiles(directory=str(_STATIC_DIR))
+else:
+    _STATIC_FILES = StaticFiles(packages=[__package__ or "api"])
+
+app.mount("/static", _STATIC_FILES, name="static")
 
 app.include_router(health.router)
 app.include_router(invoices.router)

@@ -40,16 +40,15 @@ const elements = {
     loading: document.getElementById('predict-loading'),
     result: document.getElementById('predict-result'),
   },
-tica: {
-  form: document.getElementById('tica-form'),
-  tableBody: document.getElementById('tica-rows'),
-  template: document.getElementById('tica-row-template'),
-  addItem: document.getElementById('add-tica-item'),
-  submit: document.getElementById('tica-submit'),
-  loading: document.getElementById('tica-loading'),
-  result: document.getElementById('tica-result'),
-},
-
+  tica: {
+    form: document.getElementById('tica-form'),
+    tableBody: document.getElementById('tica-rows'),
+    template: document.getElementById('tica-row-template'),
+    addItem: document.getElementById('add-tica-item'),
+    submit: document.getElementById('tica-submit'),
+    loading: document.getElementById('tica-loading'),
+    result: document.getElementById('tica-result'),
+  },
 };
 
 function escapeHtml(value) {
@@ -66,17 +65,10 @@ function muted(text = '—') {
 }
 
 function normaliseErrorDetail(detail) {
-  if (detail == null) {
-    return 'Unexpected error.';
-  }
-  if (typeof detail === 'string') {
-    return detail;
-  }
+  if (detail == null) return 'Unexpected error.';
+  if (typeof detail === 'string') return detail;
   if (Array.isArray(detail)) {
-    return detail
-      .map((item) => normaliseErrorDetail(item))
-      .filter(Boolean)
-      .join('\n');
+    return detail.map((item) => normaliseErrorDetail(item)).filter(Boolean).join('\n');
   }
   if (typeof detail === 'object') {
     if (Object.prototype.hasOwnProperty.call(detail, 'detail')) {
@@ -91,7 +83,7 @@ function normaliseErrorDetail(detail) {
     }
     try {
       return JSON.stringify(detail, null, 2);
-    } catch (error) {
+    } catch {
       return String(detail);
     }
   }
@@ -164,39 +156,25 @@ function readCredentials() {
 function buildHeaders(additional = {}) {
   const headers = new Headers();
   Object.entries(additional).forEach(([key, value]) => {
-    if (value != null) {
-      headers.set(key, value);
-    }
+    if (value != null) headers.set(key, value);
   });
   const { apiKey, licenseToken } = readCredentials();
-  if (apiKey) {
-    headers.set('X-API-Key', apiKey);
-  }
-  if (licenseToken) {
-    headers.set('X-License-Token', licenseToken);
-  }
+  if (apiKey) headers.set('X-API-Key', apiKey);
+  if (licenseToken) headers.set('X-License-Token', licenseToken);
   return headers;
 }
 
 function safeStorage(action, key, value) {
   try {
-    if (!window.localStorage) {
-      return null;
-    }
-  } catch (error) {
+    if (!window.localStorage) return null;
+  } catch {
     return null;
   }
 
   try {
-    if (action === 'get') {
-      return window.localStorage.getItem(key);
-    }
-    if (action === 'set') {
-      window.localStorage.setItem(key, value ?? '');
-    }
-    if (action === 'remove') {
-      window.localStorage.removeItem(key);
-    }
+    if (action === 'get') return window.localStorage.getItem(key);
+    if (action === 'set') window.localStorage.setItem(key, value ?? '');
+    if (action === 'remove') window.localStorage.removeItem(key);
   } catch (error) {
     console.warn('Unable to access localStorage', error);
   }
@@ -204,9 +182,7 @@ function safeStorage(action, key, value) {
 }
 
 function persistCredentialsIfNeeded() {
-  if (!elements.rememberSecrets) {
-    return;
-  }
+  if (!elements.rememberSecrets) return;
   if (!elements.rememberSecrets.checked) {
     safeStorage('remove', STORAGE_KEY);
     return;
@@ -218,9 +194,7 @@ function persistCredentialsIfNeeded() {
 
 function restoreCredentials() {
   const stored = safeStorage('get', STORAGE_KEY);
-  if (!stored) {
-    return;
-  }
+  if (!stored) return;
   try {
     const credentials = JSON.parse(stored);
     if (credentials.apiKey && elements.apiKey) {
@@ -238,26 +212,20 @@ function restoreCredentials() {
 }
 
 function setLoading(button, indicator, busy) {
-  if (!button || !indicator) {
-    return;
-  }
+  if (!button || !indicator) return;
   button.disabled = busy;
   indicator.hidden = !busy;
   button.setAttribute('aria-busy', String(busy));
 }
 
 function clearResult(container) {
-  if (!container) {
-    return;
-  }
+  if (!container) return;
   container.innerHTML = '';
   container.classList.remove('has-error');
 }
 
 function setResult(container, html, isError = false) {
-  if (!container) {
-    return;
-  }
+  if (!container) return;
   container.innerHTML = html;
   container.classList.toggle('has-error', isError);
 }
@@ -273,9 +241,7 @@ function renderError(container, message, status) {
 }
 
 function formatValue(value) {
-  if (value === null || value === undefined || value === '') {
-    return muted();
-  }
+  if (value === null || value === undefined || value === '') return muted();
   if (typeof value === 'number') {
     return escapeHtml(value.toLocaleString(undefined, { maximumFractionDigits: 4 }));
   }
@@ -283,9 +249,7 @@ function formatValue(value) {
 }
 
 function formatNumber(value, decimals = 2) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return muted();
-  }
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return muted();
   const number = Number(value);
   return escapeHtml(
     number.toLocaleString(undefined, {
@@ -296,9 +260,7 @@ function formatNumber(value, decimals = 2) {
 }
 
 function formatProbability(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return muted();
-  }
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return muted();
   const number = Number(value);
   const percent = number * 100;
   return escapeHtml(
@@ -398,23 +360,13 @@ function renderPrediction(result) {
 }
 
 function parseFeatureValue(value) {
-  if (value === null || value === undefined) {
-    return null;
-  }
+  if (value === null || value === undefined) return null;
   const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  if (trimmed.toLowerCase() === 'true') {
-    return true;
-  }
-  if (trimmed.toLowerCase() === 'false') {
-    return false;
-  }
+  if (!trimmed) return null;
+  if (trimmed.toLowerCase() === 'true') return true;
+  if (trimmed.toLowerCase() === 'false') return false;
   const numeric = Number(trimmed);
-  if (!Number.isNaN(numeric)) {
-    return numeric;
-  }
+  if (!Number.isNaN(numeric)) return numeric;
   return value;
 }
 
@@ -430,9 +382,7 @@ function collectFeatures() {
     const key = keyInput?.value.trim() ?? '';
     const value = valueInput?.value ?? '';
 
-    if (!key && !value) {
-      return; // skip empty rows
-    }
+    if (!key && !value) return; // skip empty rows
     if (!key) {
       row.classList.add('has-error');
       hasError = true;
@@ -446,33 +396,23 @@ function collectFeatures() {
 
 function ensureMinimumRows() {
   const rows = elements.predict.tableBody?.querySelectorAll('.feature-row');
-  if (!rows || rows.length > 0) {
-    return;
-  }
+  if (!rows || rows.length > 0) return;
   addFeatureRow();
 }
 
 function addFeatureRow(key = '', value = '') {
   const template = elements.predict.template;
   const tbody = elements.predict.tableBody;
-  if (!template || !tbody) {
-    return;
-  }
+  if (!template || !tbody) return;
   const prototypeRow = template.content.firstElementChild;
-  if (!prototypeRow) {
-    return;
-  }
+  if (!prototypeRow) return;
   const fragment = prototypeRow.cloneNode(true);
   const keyInput = fragment.querySelector('.feature-key');
   const valueInput = fragment.querySelector('.feature-value');
   const removeButton = fragment.querySelector('.remove-feature');
 
-  if (keyInput) {
-    keyInput.value = key;
-  }
-  if (valueInput) {
-    valueInput.value = value;
-  }
+  if (keyInput) keyInput.value = key;
+  if (valueInput) valueInput.value = value;
   if (removeButton) {
     removeButton.addEventListener('click', () => {
       fragment.remove();
@@ -594,18 +534,14 @@ function addTicaRow(data = {}) {
 
 function updateFileNameLabel() {
   const { fileInput, fileName } = elements.extract;
-  if (!fileInput || !fileName) {
-    return;
-  }
+  if (!fileInput || !fileName) return;
   const file = fileInput.files && fileInput.files[0];
   fileName.textContent = file ? file.name : 'No file selected';
 }
 
 function setupDropZone() {
   const { dropZone, fileInput } = elements.extract;
-  if (!dropZone || !fileInput) {
-    return;
-  }
+  if (!dropZone || !fileInput) return;
   dropZone.addEventListener('dragover', (event) => {
     event.preventDefault();
     dropZone.classList.add('is-dragover');
@@ -617,9 +553,7 @@ function setupDropZone() {
     event.preventDefault();
     dropZone.classList.remove('is-dragover');
     const files = event.dataTransfer?.files;
-    if (!files || files.length === 0) {
-      return;
-    }
+    if (!files || files.length === 0) return;
     const file = files[0];
     let assigned = false;
     if (typeof DataTransfer !== 'undefined') {
@@ -644,9 +578,7 @@ function setupDropZone() {
 }
 
 function bindCredentialPersistence() {
-  if (!elements.rememberSecrets) {
-    return;
-  }
+  if (!elements.rememberSecrets) return;
   elements.rememberSecrets.addEventListener('change', () => {
     if (!elements.rememberSecrets.checked) {
       safeStorage('remove', STORAGE_KEY);
@@ -655,9 +587,7 @@ function bindCredentialPersistence() {
     }
   });
   [elements.apiKey, elements.licenseToken].forEach((input) => {
-    if (!input) {
-      return;
-    }
+    if (!input) return;
     input.addEventListener('input', () => {
       if (elements.rememberSecrets?.checked) {
         persistCredentialsIfNeeded();
@@ -668,9 +598,7 @@ function bindCredentialPersistence() {
 
 function bindExtractForm() {
   const { form, submit, loading, result, fileInput, trigger } = elements.extract;
-  if (!form || !submit || !loading || !result || !fileInput) {
-    return;
-  }
+  if (!form || !submit || !loading || !result || !fileInput) return;
 
   if (trigger) {
     trigger.addEventListener('click', () => fileInput.click());
@@ -715,9 +643,7 @@ function bindExtractForm() {
 
 function bindClassifyForm() {
   const { form, submit, loading, result, text } = elements.classify;
-  if (!form || !submit || !loading || !result || !text) {
-    return;
-  }
+  if (!form || !submit || !loading || !result || !text) return;
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -754,9 +680,7 @@ function bindClassifyForm() {
 
 function bindPredictForm() {
   const { form, submit, loading, result, addRow, endpoint } = elements.predict;
-  if (!form || !submit || !loading || !result || !addRow || !endpoint) {
-    return;
-  }
+  if (!form || !submit || !loading || !result || !addRow || !endpoint) return;
 
   addRow.addEventListener('click', () => addFeatureRow());
 
@@ -957,7 +881,6 @@ function init() {
   setupDropZone();
   initialisePredictTable();
   initialiseTicaTable();
-
 }
 
 init();
