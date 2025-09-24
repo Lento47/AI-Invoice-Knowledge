@@ -29,9 +29,10 @@ Each invoice workflow requires a dedicated feature flag to be present in the lic
 
 | Feature flag | Enables |
 | --- | --- |
-| `extract` | Uploading files to `/invoices/extract` and generating customs PDFs at `/invoices/tica-pdf`. |
+| `extract` | Uploading files to `/invoices/extract` for OCR + field parsing. If your build includes the customs module, this also unlocks TICA PDF export at `/invoices/tica-pdf`. |
 | `classify` | Sending text payloads to `/invoices/classify`. |
 | `predict` | Scoring feature vectors via `/invoices/predict` or `/predict`. |
+
 
 If the token is missing a feature you will receive an HTTP 403 with an explanatory message. HTTP 401 responses usually indicate a missing or invalid API key or license signature.
 
@@ -55,12 +56,14 @@ If the token is missing a feature you will receive an HTTP 403 with an explanato
 - Select either the canonical `/invoices/predict` endpoint or the `/predict` alias.
 - The payload is POSTed as JSON (`{"features": {...}}`). The portal automatically coerces numeric and boolean literals when possible and prints the resulting prediction, risk score, and confidence.
 
-### TICA customs PDF export
+### TICA customs PDF export (optional)
+
+*Visible only if the customs module is enabled.*
 
 - Complete the metadata panels to capture invoice numbering, customs references, logistics details, and exporter/importer credentials.
 - Populate the goods table with HS codes, origin, quantities, and values. Leave the “Total value” column blank to auto-calculate `quantity × unit value` per line.
-- Submit the form to call `POST /invoices/tica-pdf`. On success the browser downloads a PDF formatted for Costa Rica’s *Tecnología de Información para el Control Aduanero* (TICA) system.
-- The workflow reuses the `extract` feature flag. Missing license permissions or validation errors render inline banners so you can correct the data without leaving the page.
+- Submit the form to call `POST /invoices/tica-pdf`. On success the browser downloads a PDF formatted for Costa Rica’s **Tecnología de Información para el Control Aduanero (TICA)** system.
+- This workflow uses the `extract` feature flag. Missing license permissions or validation errors render inline banners so you can correct the data without leaving the page.
 
 ## Troubleshooting
 
@@ -68,5 +71,6 @@ If the token is missing a feature you will receive an HTTP 403 with an explanato
 - **401/403 Unauthorized** – Confirm the API key and license token match the service configuration. Token claims must include the required feature flag(s).
 - **429 Too Many Requests** – The middleware enforces rate limiting when configured. Reduce request frequency or adjust `RATE_LIMIT_PER_MINUTE`/`RATE_LIMIT_BURST`.
 - **Unexpected errors** – Network failures and JSON parsing issues are surfaced inline. Use browser developer tools for deeper inspection and review server logs for stack traces.
+
 
 The portal enhances (but does not replace) automated integration tests. Its layout adapts to tablets and phones, so you can triage invoices from the field while keeping secrets scoped to the current browser (unless you explicitly opt in to persistence). It is designed to be safe to host in trusted environments where direct API access is appropriate.
