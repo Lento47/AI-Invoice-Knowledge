@@ -18,6 +18,10 @@ from ..middleware import Dependencies
 router = APIRouter(prefix="/models/predictive", tags=["models"], dependencies=Dependencies)
 
 
+def _claims_or_none(value: object) -> LicenseClaims | None:
+    return value if isinstance(value, LicenseClaims) else None
+
+
 class PredictIn(BaseModel):
     amount: float = Field(..., ge=0)
     customer_age_days: int = Field(..., ge=0)
@@ -31,7 +35,7 @@ class PredictIn(BaseModel):
 def predictive_status(
     claims: LicenseClaims = Depends(require_feature_flag("predictive")),
 ) -> dict:
-    ensure_feature(claims, "predictive")
+    ensure_feature(_claims_or_none(claims), "predictive")
     return predictive_status_fn()
 
 
@@ -40,10 +44,11 @@ async def predictive_train(
     file: UploadFile = File(...),
     claims: LicenseClaims = Depends(require_feature_flag("predictive_train")),
 ) -> dict:
-    ensure_feature(claims, "predictive_train")
     payload = await file.read()
     if not payload:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    ensure_feature(_claims_or_none(claims), "predictive_train")
     if settings.max_upload_bytes and len(payload) > settings.max_upload_bytes:
         raise HTTPException(
             status_code=413,
@@ -63,7 +68,7 @@ def predictive_predict(
     body: PredictIn,
     claims: LicenseClaims = Depends(require_feature_flag("predictive")),
 ) -> dict:
-    ensure_feature(claims, "predictive")
+    ensure_feature(_claims_or_none(claims), "predictive")
     try:
         return predict_payment_days(body.model_dump())
     except ValueError as exc:

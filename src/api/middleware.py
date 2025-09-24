@@ -15,6 +15,7 @@ from starlette.types import ASGIApp
 
 from ai_invoice.config import Settings, settings
 from .license_validator import HEADER_NAME, LicenseClaims, validate_license_token
+from .security import require_license_token
 
 LOGGER_NAME = "ai_invoice.api.middleware"
 
@@ -145,13 +146,14 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                         )
                         return response
 
-                token = request.headers.get(HEADER_NAME)
-                try:
-                    claims = validate_license_token(token, config=self.config)
-                except HTTPException as exc:
-                    status_code = exc.status_code
-                    response = JSONResponse({"detail": exc.detail}, status_code=status_code)
-                    return response
+                if getattr(self.config, "license_public_key", None):
+                    token = request.headers.get(HEADER_NAME)
+                    try:
+                        claims = validate_license_token(token, config=self.config)
+                    except HTTPException as exc:
+                        status_code = exc.status_code
+                        response = JSONResponse({"detail": exc.detail}, status_code=status_code)
+                        return response
 
             request.state.api_key_valid = True
             request.state.license_claims = claims
