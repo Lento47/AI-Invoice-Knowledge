@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import logging
 import sys
+from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from ai_invoice.schemas import PredictiveResult
 
@@ -27,7 +31,7 @@ if not settings.api_key and not getattr(settings, "allow_anonymous", False):
 
 from .license_validator import LicenseClaims, ensure_feature, require_feature_flag
 from .middleware import configure_middleware
-from .routers import health, invoices, models, predictive
+from .routers import admin, health, invoices, models, predictive
 from .routers.invoices import PredictRequest, predict_from_features
 
 
@@ -42,15 +46,25 @@ root_logger.setLevel(logging.INFO)
 app = FastAPI(title="AI Invoice System")
 configure_middleware(app)
 
+_BASE_DIR = Path(__file__).resolve().parent
+_TEMPLATES = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
+app.mount("/static", StaticFiles(directory=str(_BASE_DIR / "static")), name="static")
+
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(models.router)
 app.include_router(predictive.router)
+app.include_router(admin.router)
 
 
 @app.get("/")
 def root() -> dict[str, str]:
     return {"message": "AI Invoice System API"}
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_portal(request: Request) -> HTMLResponse:
+    return _TEMPLATES.TemplateResponse("admin.html", {"request": request})
 
 
 @app.post("/predict", response_model=PredictiveResult, tags=["invoices"])
