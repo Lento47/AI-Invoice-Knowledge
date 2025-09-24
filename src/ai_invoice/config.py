@@ -133,39 +133,66 @@ def _get_api_key() -> Optional[str]:
 
 @dataclass(slots=True)
 class Settings:
+    """Application configuration sourced from environment variables."""
+
     # Model paths
-    classifier_path: str = field(default_factory=lambda: os.getenv("CLASSIFIER_PATH", "models/classifier.joblib"))
-    predictive_path: str = field(default_factory=lambda: os.getenv("PREDICTIVE_PATH", "models/predictive.joblib"))
-# Auth
-api_key: Optional[str] = field(default_factory=_get_api_key)
-# Explicit opt-out switch so devs must choose to run without an API key.
-allow_anonymous: bool = field(default_factory=lambda: _get_bool_env("ALLOW_ANONYMOUS", False))
+    classifier_path: str = field(
+        default_factory=lambda: os.getenv("CLASSIFIER_PATH", "models/classifier.joblib")
+    )
+    predictive_path: str = field(
+        default_factory=lambda: os.getenv("PREDICTIVE_PATH", "models/predictive.joblib")
+    )
 
-# License
-license_public_key_path: Optional[str] = field(
-    default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY_PATH", "keys/license_public.pem")
-)
+    # Auth
+    api_key: Optional[str] = field(default_factory=_get_api_key)
+    # Explicit opt-out switch so devs must choose to run without an API key.
+    allow_anonymous: bool = field(
+        default_factory=lambda: _get_bool_env("ALLOW_ANONYMOUS", False)
+    )
 
-# Request validation
+    # License configuration
+    license_public_key_path: Optional[str] = field(
+        default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY_PATH")
+    )
+    license_public_key: Optional[str] = field(
+        default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY")
+    )
+    license_algorithm: str = field(
+        default_factory=lambda: os.getenv("LICENSE_ALGORITHM", "RS256")
+    )
+    license_revoked_jtis: frozenset[str] = field(
+        default_factory=lambda: _get_csv_env("LICENSE_REVOKED_JTIS")
+    )
+    license_revoked_subjects: frozenset[str] = field(
+        default_factory=lambda: _get_csv_env("LICENSE_REVOKED_SUBJECTS")
+    )
 
-    max_upload_bytes: int = field(default_factory=lambda: _get_int_env("MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
-    max_text_length: int = field(default_factory=lambda: _get_int_env("MAX_TEXT_LENGTH", 20_000))
-    max_feature_fields: int = field(default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50))
-    max_json_body_bytes: Optional[int] = field(default_factory=lambda: _get_int_env("MAX_JSON_BODY_BYTES"))
+    # Request validation
+    max_upload_bytes: int = field(
+        default_factory=lambda: _get_int_env("MAX_UPLOAD_BYTES", 5 * 1024 * 1024)
+    )
+    max_text_length: int = field(
+        default_factory=lambda: _get_int_env("MAX_TEXT_LENGTH", 20_000)
+    )
+    max_feature_fields: int = field(
+        default_factory=lambda: _get_int_env("MAX_FEATURE_FIELDS", 50)
+    )
+    max_json_body_bytes: Optional[int] = field(
+        default_factory=lambda: _get_int_env("MAX_JSON_BODY_BYTES")
+    )
 
     # Rate limiting knobs (not yet enforced in middleware)
-    rate_limit_per_minute: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_PER_MINUTE"))
-    rate_limit_burst: Optional[int] = field(default_factory=lambda: _get_int_env("RATE_LIMIT_BURST"))
-
-    # License verification (optional)
-    license_public_key_path: Optional[str] = field(default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY_PATH"))
-    license_public_key: Optional[str] = field(default_factory=lambda: os.getenv("LICENSE_PUBLIC_KEY"))
-    license_algorithm: str = field(default_factory=lambda: os.getenv("LICENSE_ALGORITHM", "RS256"))
-    license_revoked_jtis: frozenset[str] = field(default_factory=lambda: _get_csv_env("LICENSE_REVOKED_JTIS"))
-    license_revoked_subjects: frozenset[str] = field(default_factory=lambda: _get_csv_env("LICENSE_REVOKED_SUBJECTS"))
+    rate_limit_per_minute: Optional[int] = field(
+        default_factory=lambda: _get_int_env("RATE_LIMIT_PER_MINUTE")
+    )
+    rate_limit_burst: Optional[int] = field(
+        default_factory=lambda: _get_int_env("RATE_LIMIT_BURST")
+    )
 
     # CORS
-    cors_trusted_origins: list[TrustedCORSOrigin] = field(default_factory=_get_cors_trusted_origins)
+    cors_trusted_origins: list[TrustedCORSOrigin] = field(
+        default_factory=_get_cors_trusted_origins
+    )
 
     def __post_init__(self) -> None:
         # Enforce explicit choice: either set an API key or opt into anonymous mode.
