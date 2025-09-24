@@ -196,6 +196,7 @@ class Settings:
     # Model paths
     classifier_path: str = "models/classifier.joblib"
     predictive_path: str = "models/predictive.joblib"
+    agent_model: Optional[str] = None
 
     # Auth
     api_key: Optional[str] = None
@@ -228,6 +229,7 @@ class Settings:
 
         self.api_key = _normalize_optional_str(self.api_key)
         self.admin_api_key = _normalize_optional_str(self.admin_api_key)
+        self.agent_model = _normalize_optional_str(self.agent_model)
         self.allow_anonymous = bool(self.allow_anonymous)
 
         self.license_public_key_path = _normalize_optional_str(self.license_public_key_path)
@@ -348,6 +350,10 @@ def _collect_env_overrides(base: dict[str, Any]) -> tuple[dict[str, Any], set[st
     if "PREDICTIVE_PATH" in os.environ:
         overrides["predictive_path"] = os.getenv("PREDICTIVE_PATH") or base.get("predictive_path")
         override_fields.add("predictive_path")
+
+    if "AGENT_MODEL" in os.environ:
+        overrides["agent_model"] = _normalize_optional_str(os.getenv("AGENT_MODEL"))
+        override_fields.add("agent_model")
 
     if any(env in os.environ for env in ("AI_API_KEY", "API_KEY")):
         overrides["api_key"] = _get_api_key()

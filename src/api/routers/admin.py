@@ -37,6 +37,10 @@ class CorsOriginModel(BaseModel):
 class SettingsDocument(BaseModel):
     classifier_path: str
     predictive_path: str
+    agent_model: str | None = Field(
+        default=None,
+        description="Model identifier used by LangGraph deep agents (e.g. openai:gpt-4o-mini)",
+    )
     api_key: str | None = Field(default=None, description="API key required for client access")
     admin_api_key: str | None = Field(
         default=None, description="Secret used to access the administrative API"
