@@ -224,20 +224,28 @@ function clearResult(container) {
   container.classList.remove('has-error');
 }
 
-function setResult(container, html, isError = false) {
+function setResult(container, html, variant = 'assistant') {
   if (!container) return;
-  container.innerHTML = html;
-  container.classList.toggle('has-error', isError);
+  const label = variant === 'error' ? '!' : 'AI';
+  container.innerHTML = `
+    <div class="chat-message chat-message--${escapeHtml(variant)}">
+      <div class="chat-message__avatar" data-label="${label}" aria-hidden="true"></div>
+      <div class="chat-message__body">${html}</div>
+    </div>
+  `;
+  container.classList.toggle('has-error', variant === 'error');
 }
 
 function renderError(container, message, status) {
   const statusLabel = status ? `Request failed (HTTP ${status})` : 'Request failed';
   const detail = escapeHtml(message);
-  setResult(
-    container,
-    `<div class="error-banner"><span>${statusLabel}</span><span class="error-banner__detail">${detail}</span></div>`,
-    true,
-  );
+  const html = `
+    <div class="error-banner">
+      <span>${escapeHtml(statusLabel)}</span>
+      <span class="error-banner__detail">${detail}</span>
+    </div>
+  `;
+  setResult(container, html, 'error');
 }
 
 function formatValue(value) {

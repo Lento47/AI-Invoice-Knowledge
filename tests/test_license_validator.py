@@ -21,6 +21,7 @@ if str(SRC_DIR) not in sys.path:
 os.environ.setdefault("API_KEY", "test-secret")
 
 from ai_invoice.config import settings
+from api.license_validator import get_license_claims
 from api.security import reset_license_verifier_cache, require_license_token
 
 
@@ -143,4 +144,15 @@ def test_validator_rejects_tampered_and_expired_tokens(configure_license: tuple[
         require_license_token(expired_request)
     assert expired_exc.value.status_code == 401
     assert "expired" in expired_exc.value.detail.lower()
+
+
+def test_get_license_claims_raises_when_trial_expired() -> None:
+    request = _build_request(token=None)
+    request.state.trial_error_detail = "Trial expired"
+
+    with pytest.raises(HTTPException) as exc:
+        get_license_claims(request)
+
+    assert exc.value.status_code == 403
+    assert "expired" in exc.value.detail.lower()
 

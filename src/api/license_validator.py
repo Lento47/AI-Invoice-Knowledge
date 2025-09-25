@@ -236,6 +236,9 @@ def ensure_feature(claims: LicenseClaims | None, feature: str) -> LicenseClaims:
 
 
 def get_license_claims(request: Request) -> LicenseClaims:
+    trial_error = getattr(request.state, "trial_error_detail", None)
+    if isinstance(trial_error, str) and trial_error.strip():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=trial_error)
     claims = getattr(request.state, "license_claims", None)
     if not isinstance(claims, LicenseClaims):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing license token.")
