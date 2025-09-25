@@ -53,6 +53,7 @@ _STATIC_DIR = _BASE_DIR / "static"
 _TEMPLATES = Jinja2Templates(directory=str(_TEMPLATE_DIR))
 
 _STATIC_FILES: StaticFiles | None
+# Resolve static files location with a directory-first strategy and a safe package fallback.
 if _STATIC_DIR.is_dir():
     _STATIC_FILES = StaticFiles(directory=str(_STATIC_DIR))
 else:
@@ -61,6 +62,7 @@ else:
     except RuntimeError as exc:  # pragma: no cover - depends on packaging environment
         STARTUP_LOGGER.warning("Static assets unavailable: %s", exc)
         _STATIC_FILES = None
+
 
 if _STATIC_FILES is not None:
     app.mount("/static", _STATIC_FILES, name="static")
