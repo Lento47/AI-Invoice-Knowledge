@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
 from ai_invoice.config import Settings, settings
+from ai_invoice.trial import TrialStatus, resolve_trial_claims
 from .license_validator import HEADER_NAME, LicenseClaims, validate_license_token
 from .security import require_license_token
 
@@ -146,6 +147,9 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                         )
                         return response
 
+                trial_status: TrialStatus | None = None
+                trial_error: str | None = None
+
                 if getattr(self.config, "license_public_key", None):
                     token = request.headers.get(HEADER_NAME)
                     try:
@@ -154,9 +158,21 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                         status_code = exc.status_code
                         response = JSONResponse({"detail": exc.detail}, status_code=status_code)
                         return response
+                else:
+                    trial_status, trial_claims = resolve_trial_claims()
+                    if trial_claims is not None:
+                        claims = LicenseClaims(raw=dict(trial_claims), features=frozenset(trial_status.features))
+                    else:
+                        trial_error = (
+                            "Trial period has expired. Advanced features are disabled until a license is applied."
+                        )
 
             request.state.api_key_valid = True
             request.state.license_claims = claims
+            if trial_status is not None:
+                request.state.trial_status = trial_status
+            if trial_error is not None:
+                request.state.trial_error_detail = trial_error
             response = await call_next(request)
             status_code = response.status_code
             return response
