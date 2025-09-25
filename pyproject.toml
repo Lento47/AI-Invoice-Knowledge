@@ -20,7 +20,7 @@ dependencies = [
   "opencv-python>=4.10",
   "spacy>=3.7",
   "faker>=25.0",
-  "deepagents>=0.1.1",
+  "deepagents>=0.0.7",
 ]
 
 [tool.uv]
