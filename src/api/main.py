@@ -52,12 +52,20 @@ _STATIC_DIR = _BASE_DIR / "static"
 
 _TEMPLATES = Jinja2Templates(directory=str(_TEMPLATE_DIR))
 
-if _STATIC_DIR.is_dir():
-    _STATIC_FILES = StaticFiles(directory=str(_STATIC_DIR))
-else:
-    _STATIC_FILES = StaticFiles(packages=[__package__ or "api"])
+_STATIC_FILES: StaticFiles | None
+try:
+    if _STATIC_DIR.is_dir():
+        _STATIC_FILES = StaticFiles(directory=str(_STATIC_DIR))
+    else:
+        _STATIC_FILES = StaticFiles(packages=[__package__ or "api"])
+except RuntimeError as exc:  # pragma: no cover - depends on packaging environment
+    STARTUP_LOGGER.warning("Static assets unavailable: %s", exc)
+    _STATIC_FILES = None
 
-app.mount("/static", _STATIC_FILES, name="static")
+if _STATIC_FILES is not None:
+    app.mount("/static", _STATIC_FILES, name="static")
+else:  # pragma: no cover - only exercised when static assets are missing
+    STARTUP_LOGGER.warning("Continuing without /static mount; static assets not found")
 
 app.include_router(health.router)
 app.include_router(invoices.router)

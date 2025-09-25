@@ -178,3 +178,4 @@ Use `AIClient` in your controllers or background services once registered.
 * Expand NLP rules and add locale-aware total extraction.
 * Broaden the dataset and labels for the classifier and predictive models.
 * Add retries, telemetry, and circuit breakers on the .NET side.
+* Experiment with LangGraph deep agents to orchestrate invoice automation end-to-end (see [`docs/deep_agents.md`](docs/deep_agents.md)).
