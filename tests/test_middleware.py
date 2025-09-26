@@ -261,6 +261,36 @@ async def test_health_request_without_license_does_not_raise(rate_limit_guard) -
     assert response.status_code == 200
 
 
+async def test_trial_fallback_allows_protected_request(
+    api_key_guard, rate_limit_guard, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    previous_license_path = settings.license_public_key_path
+    previous_license_key = settings.license_public_key
+    trial_path = tmp_path / "trial.json"
+    monkeypatch.setenv("AI_INVOICE_TRIAL_PATH", str(trial_path))
+    settings.license_public_key_path = None
+    settings.license_public_key = None
+
+    middleware = _middleware()
+
+    async def call_next(request: Request) -> Response:
+        assert isinstance(request.state.license_claims, LicenseClaims)
+        assert request.state.license_claims.has_feature("classify")
+        return Response("ok")
+
+    headers = [(b"x-api-key", b"test-secret")]
+    request = _build_request(headers=headers)
+
+    try:
+        response = await middleware.dispatch(request, call_next)
+    finally:
+        settings.license_public_key_path = previous_license_path
+        settings.license_public_key = previous_license_key
+        monkeypatch.delenv("AI_INVOICE_TRIAL_PATH", raising=False)
+
+    assert response.status_code == 200
+
+
 async def test_authorized_request_logs(
     api_key_guard, license_guard, rate_limit_guard, caplog: pytest.LogCaptureFixture
 ) -> None:
