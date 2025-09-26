@@ -409,7 +409,19 @@ a:focus {
 
 textarea {
   resize: vertical;
+  line-height: 1.5;
+}
+
+#classify-text {
   min-height: 160px;
+}
+
+.form-field textarea[rows='2'] {
+  min-height: calc(2 * 1.5em + 20px);
+}
+
+.form-field textarea[rows='3'] {
+  min-height: calc(3 * 1.5em + 20px);
 }
 
 .drop-zone {
