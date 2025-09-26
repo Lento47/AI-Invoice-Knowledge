@@ -29,24 +29,31 @@
           <code>X-License-Token</code> for licensed features.
         </p>
         <form class="form-grid" id="credentials-form">
-          <label class="form-field">
-            <span class="form-label">X-API-Key</span>
-            <input type="password" id="api-key" autocomplete="off" placeholder="Enter your API key" />
-          </label>
-          <label class="form-field">
-            <span class="form-label">X-License-Token</span>
+          <div class="form-field">
+            <label class="form-label" for="api-key">X-API-Key</label>
+            <input
+              type="password"
+              id="api-key"
+              name="api_key"
+              autocomplete="off"
+              placeholder="Enter your API key"
+            />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="license-token">X-License-Token</label>
             <input
               type="password"
               id="license-token"
+              name="license_token"
               autocomplete="off"
               placeholder="Paste your signed license token"
             />
-          </label>
-          <label class="form-checkbox">
-            <input type="checkbox" id="remember-secrets" />
-            <span>Remember these secrets on this device</span>
-          </label>
-          <p class="form-helper">
+          </div>
+          <div class="form-checkbox">
+            <input type="checkbox" id="remember-secrets" name="remember_secrets" />
+            <label for="remember-secrets">Remember these secrets on this device</label>
+          </div>
+          <p class="form-helper" id="feature-access-hint">
             Feature access is controlled by license flags: <strong>extract</strong> for file uploads,
             <strong>classify</strong> for text classification, and <strong>predict</strong> for payment scoring.
           </p>
@@ -59,25 +66,39 @@
           <h2>Invoice Extraction</h2>
           <span class="feature-badge" aria-label="Requires extract feature">extract</span>
         </div>
-        <p class="card__lead">
+        <p class="card__lead" id="extract-lead">
           Drag-and-drop or browse for a PDF or image invoice. The service will return parsed supplier, totals, line items, and raw text.
         </p>
-        <form id="extract-form" class="card__body" novalidate>
-          <div class="drop-zone" id="extract-drop-zone">
-            <div class="drop-zone__hint">
+        <form id="extract-form" class="card__body" aria-describedby="extract-lead" novalidate>
+          <div
+            class="drop-zone"
+            id="extract-drop-zone"
+            role="button"
+            tabindex="0"
+            aria-label="Upload an invoice file by dropping it here or selecting a file"
+            aria-describedby="extract-dropzone-hint extract-file-name"
+          >
+            <div class="drop-zone__hint" id="extract-dropzone-hint">
               <strong>Drop invoice files here</strong>
               <span>or</span>
             </div>
             <button type="button" class="button button--outline" id="extract-file-button">Choose a file</button>
-            <input type="file" id="extract-file" name="file" accept=".pdf,.png,.jpg,.jpeg" />
+            <input
+              type="file"
+              id="extract-file"
+              name="file"
+              accept=".pdf,.png,.jpg,.jpeg"
+              aria-hidden="true"
+              tabindex="-1"
+            />
             <p class="drop-zone__file" id="extract-file-name">No file selected</p>
           </div>
           <div class="form-actions">
             <button type="submit" class="button button--primary" id="extract-submit">Extract invoice</button>
-            <div class="loading" id="extract-loading" hidden>Preparing your extraction…</div>
+            <div class="loading" id="extract-loading" role="status" aria-live="polite" hidden>Processing…</div>
           </div>
         </form>
-        <div class="results" id="extract-result" aria-live="polite"></div>
+        <div class="results" id="extract-result" role="region" aria-live="polite" aria-label="Extraction results"></div>
       </section>
 
       <!-- Text Classification -->
@@ -86,20 +107,20 @@
           <h2>Text Classification</h2>
           <span class="feature-badge" aria-label="Requires classify feature">classify</span>
         </div>
-        <p class="card__lead">
+        <p class="card__lead" id="classify-lead">
           Paste raw invoice text to predict the document type. The classifier returns the best-fit label and probability.
         </p>
-        <form id="classify-form" class="card__body" novalidate>
-          <label class="form-field">
-            <span class="form-label">Invoice text</span>
-            <textarea id="classify-text" rows="8" placeholder="Paste or type invoice contents"></textarea>
-          </label>
+        <form id="classify-form" class="card__body" aria-describedby="classify-lead" novalidate>
+          <div class="form-field">
+            <label class="form-label" for="classify-text">Invoice text</label>
+            <textarea id="classify-text" name="invoice_text" rows="8" placeholder="Paste or type invoice contents"></textarea>
+          </div>
           <div class="form-actions">
             <button type="submit" class="button button--primary" id="classify-submit">Classify text</button>
-            <div class="loading" id="classify-loading" hidden>Analyzing the text…</div>
+            <div class="loading" id="classify-loading" role="status" aria-live="polite" hidden>Evaluating…</div>
           </div>
         </form>
-        <div class="results" id="classify-result" aria-live="polite"></div>
+        <div class="results" id="classify-result" role="region" aria-live="polite" aria-label="Classification results"></div>
       </section>
 
       <!-- Payment Prediction -->
@@ -108,12 +129,12 @@
           <h2>Payment Prediction</h2>
           <span class="feature-badge" aria-label="Requires predict feature">predict</span>
         </div>
-        <p class="card__lead">
+        <p class="card__lead" id="predict-lead">
           Provide feature key/value pairs to score expected payment timing. You can target the canonical endpoint or the <code>/predict</code> alias.
         </p>
-        <form id="predict-form" class="card__body" novalidate>
+        <form id="predict-form" class="card__body" aria-describedby="predict-lead" novalidate>
           <div class="feature-table-wrapper">
-            <table class="feature-table" aria-describedby="predict-panel">
+            <table class="feature-table" aria-label="Payment prediction feature inputs">
               <thead>
                 <tr>
                   <th scope="col">Feature key</th>
@@ -127,20 +148,20 @@
           </div>
 
           <div class="form-grid form-grid--compact">
-            <label class="form-field">
-              <span class="form-label">Endpoint</span>
-              <select id="predict-endpoint">
+            <div class="form-field">
+              <label class="form-label" for="predict-endpoint">Endpoint</label>
+              <select id="predict-endpoint" name="predict_endpoint">
                 <option value="/invoices/predict">/invoices/predict</option>
                 <option value="/predict">/predict</option>
               </select>
-            </label>
+            </div>
             <div class="form-actions form-actions--end">
               <button type="submit" class="button button--primary" id="predict-submit">Score payment</button>
-              <div class="loading" id="predict-loading" hidden>Generating the forecast…</div>
+              <div class="loading" id="predict-loading" role="status" aria-live="polite" hidden>Scoring…</div>
             </div>
           </div>
         </form>
-        <div class="results" id="predict-result" aria-live="polite"></div>
+        <div class="results" id="predict-result" role="region" aria-live="polite" aria-label="Payment prediction results"></div>
       </section>
 
       <!-- TICA Customs PDF -->
@@ -149,85 +170,85 @@
           <h2>TICA Customs PDF</h2>
           <span class="feature-badge" aria-label="Requires extract feature">extract</span>
         </div>
-        <p class="card__lead">
+        <p class="card__lead" id="tica-lead">
           Compile the information required by Costa Rica's <abbr title="Tecnología de Información para el Control Aduanero">TICA</abbr>
           system and export a customs-ready invoice PDF.
         </p>
-        <form id="tica-form" class="card__body" novalidate>
+        <form id="tica-form" class="card__body" aria-describedby="tica-lead" novalidate>
           <div class="form-section">
             <h3 class="form-section__title">Invoice metadata</h3>
             <div class="form-grid form-grid--responsive">
-              <label class="form-field">
-                <span class="form-label">Invoice number</span>
+              <div class="form-field">
+                <label class="form-label" for="tica-invoice-number">Invoice number</label>
                 <input type="text" id="tica-invoice-number" name="invoice_number" placeholder="Reference number" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Issue date</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-issue-date">Issue date</label>
                 <input type="date" id="tica-issue-date" name="issue_date" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Customs reference</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-customs-reference">Customs reference</label>
                 <input type="text" id="tica-customs-reference" name="customs_reference" placeholder="DUA, DUT, etc." />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Regime</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-regime">Regime</label>
                 <input type="text" id="tica-regime" name="regime" placeholder="Importación definitiva, tránsito..." />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Incoterm</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-incoterm">Incoterm</label>
                 <input type="text" id="tica-incoterm" name="incoterm" placeholder="FOB, CIF, EXW" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Transport mode</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-transport-mode">Transport mode</label>
                 <input type="text" id="tica-transport-mode" name="transport_mode" placeholder="Marítimo, aéreo, terrestre" />
-              </label>
-              <label class="form-field form-field--wide">
-                <span class="form-label">Destination customs office</span>
+              </div>
+              <div class="form-field form-field--wide">
+                <label class="form-label" for="tica-destination-port">Destination customs office</label>
                 <input type="text" id="tica-destination-port" name="destination_port" placeholder="Puerto Caldera, Peñas Blancas..." />
-              </label>
+              </div>
             </div>
           </div>
 
           <div class="form-section">
             <h3 class="form-section__title">Exporter</h3>
             <div class="form-grid form-grid--responsive">
-              <label class="form-field">
-                <span class="form-label">Name</span>
+              <div class="form-field">
+                <label class="form-label" for="tica-exporter-name">Name</label>
                 <input type="text" id="tica-exporter-name" name="exporter_name" placeholder="Company or person" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Tax ID</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-exporter-id">Tax ID</label>
                 <input type="text" id="tica-exporter-id" name="exporter_id" placeholder="Número de identificación" />
-              </label>
-              <label class="form-field form-field--wide">
-                <span class="form-label">Address</span>
+              </div>
+              <div class="form-field form-field--wide">
+                <label class="form-label" for="tica-exporter-address">Address</label>
                 <textarea id="tica-exporter-address" name="exporter_address" rows="2" placeholder="Dirección completa"></textarea>
-              </label>
+              </div>
             </div>
           </div>
 
           <div class="form-section">
             <h3 class="form-section__title">Importer</h3>
             <div class="form-grid form-grid--responsive">
-              <label class="form-field">
-                <span class="form-label">Name</span>
+              <div class="form-field">
+                <label class="form-label" for="tica-importer-name">Name</label>
                 <input type="text" id="tica-importer-name" name="importer_name" placeholder="Destinatario" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Tax ID</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-importer-id">Tax ID</label>
                 <input type="text" id="tica-importer-id" name="importer_id" placeholder="Número de identificación" />
-              </label>
-              <label class="form-field form-field--wide">
-                <span class="form-label">Address</span>
+              </div>
+              <div class="form-field form-field--wide">
+                <label class="form-label" for="tica-importer-address">Address</label>
                 <textarea id="tica-importer-address" name="importer_address" rows="2" placeholder="Dirección completa"></textarea>
-              </label>
+              </div>
             </div>
           </div>
 
           <div class="form-section">
             <h3 class="form-section__title">Goods declaration</h3>
             <div class="table-scroll" role="group" aria-label="Goods listed for the customs document">
-              <table class="feature-table feature-table--tight" aria-describedby="tica-panel">
+              <table class="feature-table feature-table--tight" aria-label="Goods declaration items">
                 <thead>
                   <tr>
                     <th scope="col">Description</th>
@@ -249,35 +270,35 @@
           <div class="form-section">
             <h3 class="form-section__title">Totals &amp; notes</h3>
             <div class="form-grid form-grid--responsive">
-              <label class="form-field">
-                <span class="form-label">Currency</span>
+              <div class="form-field">
+                <label class="form-label" for="tica-currency">Currency</label>
                 <input type="text" id="tica-currency" name="currency" placeholder="USD" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Subtotal</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-subtotal">Subtotal</label>
                 <input type="number" id="tica-subtotal" name="subtotal" step="0.01" min="0" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Tax</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-tax">Tax</label>
                 <input type="number" id="tica-tax" name="tax" step="0.01" min="0" />
-              </label>
-              <label class="form-field">
-                <span class="form-label">Total</span>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tica-total">Total</label>
                 <input type="number" id="tica-total" name="total" step="0.01" min="0" />
-              </label>
-              <label class="form-field form-field--wide">
-                <span class="form-label">Notes</span>
+              </div>
+              <div class="form-field form-field--wide">
+                <label class="form-label" for="tica-notes">Notes</label>
                 <textarea id="tica-notes" name="notes" rows="3" placeholder="Instrucciones o sellos especiales"></textarea>
-              </label>
+              </div>
             </div>
           </div>
 
           <div class="form-actions">
             <button type="submit" class="button button--primary" id="tica-submit">Generate TICA PDF</button>
-            <div class="loading" id="tica-loading" hidden>Composing your PDF…</div>
+            <div class="loading" id="tica-loading" role="status" aria-live="polite" hidden>Generating…</div>
           </div>
         </form>
-        <div class="results" id="tica-result" aria-live="polite"></div>
+        <div class="results" id="tica-result" role="region" aria-live="polite" aria-label="TICA PDF results"></div>
       </section>
     </main>
 
