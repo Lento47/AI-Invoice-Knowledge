@@ -8,10 +8,14 @@ from pydantic import BaseModel
 from ai_invoice.schemas import ClassificationResult, InvoiceExtraction, PredictiveResult
 from ai_invoice.service import classify_text, extract_invoice, predict
 from ..license_validator import LicenseClaims, ensure_feature, require_feature_flag
-from ..middleware import Dependencies
+from ..middleware import require_api_key, require_license_claims_if_configured
 from ai_invoice.config import settings
 
-router = APIRouter(prefix="/invoices", tags=["invoices"], dependencies=Dependencies)
+router = APIRouter(
+    prefix="/invoices",
+    tags=["invoices"],
+    dependencies=[Depends(require_api_key), Depends(require_license_claims_if_configured)],
+)
 
 
 class ClassifyRequest(BaseModel):

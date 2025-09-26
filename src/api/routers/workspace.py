@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from typing import List, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from ..middleware import Dependencies
+from ..middleware import require_api_key, require_license_claims_if_configured
 
 
-router = APIRouter(prefix="/workspace", tags=["workspace"], dependencies=Dependencies)
+router = APIRouter(
+    prefix="/workspace",
+    tags=["workspace"],
+    dependencies=[Depends(require_api_key), Depends(require_license_claims_if_configured)],
+)
 
 
 class KpiCard(BaseModel):
