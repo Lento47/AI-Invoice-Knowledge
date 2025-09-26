@@ -46,19 +46,20 @@
           <form class="form-grid" id="credentials-form">
             <label class="form-field">
               <span class="form-label">X-API-Key</span>
-              <input type="password" id="api-key" autocomplete="off" placeholder="Enter your API key" />
+              <input type="password" id="api-key" name="api_key" autocomplete="off" placeholder="Enter your API key" />
             </label>
             <label class="form-field">
               <span class="form-label">X-License-Token</span>
               <input
                 type="password"
                 id="license-token"
+                name="license_token"
                 autocomplete="off"
                 placeholder="Paste your signed license token"
               />
             </label>
             <label class="form-checkbox">
-              <input type="checkbox" id="remember-secrets" />
+              <input type="checkbox" id="remember-secrets" name="remember_secrets" />
               <span>Remember these secrets on this device</span>
             </label>
           </form>
@@ -84,18 +85,18 @@
         </div>
         <div class="card__body card__body--spacious">
           <form id="extract-form" class="card__section" novalidate>
-            <div class="drop-zone" id="extract-drop-zone">
+            <div class="drop-zone" id="extract-drop-zone" role="button" tabindex="0" aria-label="Upload an invoice file">
               <div class="drop-zone__hint">
                 <strong>Drop invoice files here</strong>
                 <span>or</span>
               </div>
               <button type="button" class="button button--outline" id="extract-file-button">Choose a file</button>
-              <input type="file" id="extract-file" name="file" accept=".pdf,.png,.jpg,.jpeg" />
+              <input type="file" id="extract-file" name="file" accept=".pdf,.png,.jpg,.jpeg" aria-hidden="true" tabindex="-1" />
               <p class="drop-zone__file" id="extract-file-name">No file selected</p>
             </div>
             <div class="form-actions">
               <button type="submit" class="button button--primary" id="extract-submit">Extract invoice</button>
-              <div class="loading" id="extract-loading" hidden>Processing…</div>
+              <div class="loading" id="extract-loading" aria-live="polite" hidden>Processing…</div>
             </div>
           </form>
           <div class="results" id="extract-result" aria-live="polite"></div>
@@ -119,11 +120,11 @@
           <form id="classify-form" class="card__section" novalidate>
             <label class="form-field">
               <span class="form-label">Invoice text</span>
-              <textarea id="classify-text" rows="8" placeholder="Paste or type invoice contents"></textarea>
+              <textarea id="classify-text" name="invoice_text" rows="8" placeholder="Paste or type invoice contents"></textarea>
             </label>
             <div class="form-actions">
               <button type="submit" class="button button--primary" id="classify-submit">Classify text</button>
-              <div class="loading" id="classify-loading" hidden>Scoring…</div>
+              <div class="loading" id="classify-loading" aria-live="polite" hidden>Scoring…</div>
             </div>
           </form>
           <div class="results" id="classify-result" aria-live="polite"></div>
@@ -158,18 +159,17 @@
               </table>
               <button type="button" class="button button--ghost" id="add-feature-row">Add feature</button>
             </div>
-
             <div class="form-grid form-grid--compact">
               <label class="form-field">
                 <span class="form-label">Endpoint</span>
-                <select id="predict-endpoint">
+                <select id="predict-endpoint" name="predict_endpoint">
                   <option value="/invoices/predict">/invoices/predict</option>
                   <option value="/predict">/predict</option>
                 </select>
               </label>
               <div class="form-actions form-actions--end">
                 <button type="submit" class="button button--primary" id="predict-submit">Score payment</button>
-                <div class="loading" id="predict-loading" hidden>Evaluating…</div>
+                <div class="loading" id="predict-loading" aria-live="polite" hidden>Evaluating…</div>
               </div>
             </div>
           </form>
@@ -236,7 +236,6 @@
                 </label>
               </div>
             </div>
-
             <div class="form-section">
               <h3 class="form-section__title">Exporter</h3>
               <div class="form-grid form-grid--responsive">
@@ -254,7 +253,6 @@
                 </label>
               </div>
             </div>
-
             <div class="form-section">
               <h3 class="form-section__title">Importer</h3>
               <div class="form-grid form-grid--responsive">
@@ -272,7 +270,6 @@
                 </label>
               </div>
             </div>
-
             <div class="form-section">
               <h3 class="form-section__title">Goods declaration</h3>
               <div class="table-scroll" role="group" aria-label="Goods listed for the customs document">
@@ -294,7 +291,6 @@
               <p class="form-helper">Leave total value blank to calculate quantity × unit value automatically.</p>
               <button type="button" class="button button--ghost" id="add-tica-item">Add goods line</button>
             </div>
-
             <div class="form-section">
               <h3 class="form-section__title">Totals &amp; notes</h3>
               <div class="form-grid form-grid--responsive">
@@ -320,10 +316,9 @@
                 </label>
               </div>
             </div>
-
             <div class="form-actions">
               <button type="submit" class="button button--primary" id="tica-submit">Generate TICA PDF</button>
-              <div class="loading" id="tica-loading" hidden>Generating…</div>
+              <div class="loading" id="tica-loading" aria-live="polite" hidden>Generating…</div>
             </div>
           </form>
           <div class="results" id="tica-result" aria-live="polite"></div>
@@ -335,10 +330,10 @@
     <template id="feature-row-template">
       <tr class="feature-row">
         <td data-label="Feature key">
-          <input type="text" class="feature-key" placeholder="e.g. amount" />
+          <input type="text" class="feature-key" name="feature_key" placeholder="e.g. amount" />
         </td>
         <td data-label="Value">
-          <input type="text" class="feature-value" placeholder="e.g. 950" />
+          <input type="text" class="feature-value" name="feature_value" placeholder="e.g. 950" />
         </td>
         <td class="feature-table__actions" data-label="Actions">
           <button type="button" class="button button--icon remove-feature" aria-label="Remove feature row">
@@ -352,22 +347,22 @@
     <template id="tica-row-template">
       <tr class="tica-row">
         <td data-label="Description">
-          <textarea class="tica-description" rows="2" placeholder="Describe the goods"></textarea>
+          <textarea class="tica-description" name="description" rows="2" placeholder="Describe the goods"></textarea>
         </td>
         <td data-label="HS code">
-          <input type="text" class="tica-hs" placeholder="e.g. 4810.19" />
+          <input type="text" class="tica-hs" name="hs_code" placeholder="e.g. 4810.19" />
         </td>
         <td data-label="Country of origin">
-          <input type="text" class="tica-origin" placeholder="CR, MX, CN" />
+          <input type="text" class="tica-origin" name="country_origin" placeholder="CR, MX, CN" />
         </td>
         <td data-label="Quantity">
-          <input type="number" class="tica-quantity" step="0.001" min="0" />
+          <input type="number" class="tica-quantity" name="quantity" step="0.001" min="0" />
         </td>
         <td data-label="Unit value">
-          <input type="number" class="tica-unit-value" step="0.01" min="0" />
+          <input type="number" class="tica-unit-value" name="unit_value" step="0.01" min="0" />
         </td>
         <td data-label="Total value">
-          <input type="number" class="tica-total-value" step="0.01" min="0" placeholder="(auto)" />
+          <input type="number" class="tica-total-value" name="total_value" step="0.01" min="0" placeholder="(auto)" />
         </td>
         <td class="feature-table__actions" data-label="Actions">
           <button type="button" class="button button--icon remove-tica-item" aria-label="Remove goods line">
