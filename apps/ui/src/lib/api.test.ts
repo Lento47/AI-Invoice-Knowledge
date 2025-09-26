@@ -33,11 +33,12 @@ describe('buildUrl', () => {
     expect(buildUrl(' invoices ')).toBe('/invoices');
   });
 
-  it('uses the application base URL when the API base is blank', () => {
+  it('uses the application base URL for relative paths when the API base is blank', () => {
     env.VITE_API_BASE_URL = '   ';
     env.BASE_URL = '/portal/';
 
-    expect(buildUrl('  /workspace/items ')).toBe('/portal/workspace/items');
+    expect(buildUrl('  /workspace/items ')).toBe('/workspace/items');
+    expect(buildUrl(' workspace/items ')).toBe('/portal/workspace/items');
   });
 
   it('uses relative paths when no base URL is set', () => {

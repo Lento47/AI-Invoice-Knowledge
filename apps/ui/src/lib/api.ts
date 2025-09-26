@@ -65,9 +65,11 @@ export const buildUrl = (path: string): string => {
   const rawBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
   const trimmedPath = path.trim();
 
+  const isRelativePath = !trimmedPath.startsWith('/');
+
   let effectiveBase = rawBase.trim();
 
-  if (!effectiveBase) {
+  if (!effectiveBase && isRelativePath) {
     const rawAppBase = (import.meta.env.BASE_URL as string | undefined) ?? '';
     const appBase = rawAppBase.trim();
     if (appBase && appBase !== '/') {
