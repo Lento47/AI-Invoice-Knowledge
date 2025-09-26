@@ -1,3 +1,5 @@
+import { readStoredCredentials } from './credentials';
+
 export class ApiError extends Error {
   status: number;
   payload: unknown;
@@ -9,30 +11,6 @@ export class ApiError extends Error {
     this.payload = payload;
   }
 }
-
-const STORAGE_KEY = 'ai-invoice-portal.credentials';
-
-type StoredCredentials = {
-  apiKey?: string;
-  licenseToken?: string;
-};
-
-const readCredentials = (): StoredCredentials => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as StoredCredentials;
-    return {
-      apiKey: parsed.apiKey?.trim() || undefined,
-      licenseToken: parsed.licenseToken?.trim() || undefined
-    };
-  } catch {
-    return {};
-  }
-};
 
 export const normaliseErrorDetail = (detail: unknown): string => {
   if (detail == null) return 'Unexpected error.';
@@ -102,7 +80,7 @@ type RequestOptions = {
 };
 
 const request = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
-  const { apiKey, licenseToken } = readCredentials();
+  const { apiKey, licenseToken } = readStoredCredentials();
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
   if (apiKey) headers.set('X-API-Key', apiKey);
