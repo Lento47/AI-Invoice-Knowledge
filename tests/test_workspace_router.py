@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -12,10 +14,29 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 os.environ.setdefault("API_KEY", "test-secret")
 
 from api.main import app  # noqa: E402
+from api.license_validator import HEADER_NAME  # noqa: E402
+from api.security import require_license_token  # noqa: E402
 
 
 client = TestClient(app)
-HEADERS = {"X-API-Key": os.environ["API_KEY"]}
+
+
+def _mock_license_dependency(request):  # type: ignore[override]
+    payload = SimpleNamespace(
+        tenant=SimpleNamespace(id="test-tenant"),
+        features=["workspace"],
+        token_id="unit-test-token",
+    )
+    request.state.license_payload = payload
+    return payload
+
+
+app.dependency_overrides[require_license_token] = _mock_license_dependency
+
+HEADERS = {
+    "X-API-Key": os.environ["API_KEY"],
+    HEADER_NAME: "unit-test-license",
+}
 
 
 def test_workspace_dashboard_payload() -> None:
