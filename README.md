@@ -50,6 +50,14 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
 
 ````
 
+## Using the AI tools
+
+The platform exposes the extraction, classification, prediction, and agent
+capabilities through multiple entry points. See
+[`docs/ai_tools_overview.md`](docs/ai_tools_overview.md) for a consolidated guide
+covering direct API calls, the web portal, the LangGraph deep agent helper, the
+.NET client, and the React workspace hooks.
+
 ## Python service
 
 1. Create a virtual environment and install dependencies (via `uv` or `pip`):
