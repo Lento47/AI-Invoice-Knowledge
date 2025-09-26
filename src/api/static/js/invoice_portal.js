@@ -551,17 +551,8 @@ function setupDropZone() {
   const { dropZone, fileInput } = elements.extract;
   if (!dropZone || !fileInput) return;
   dropZone.addEventListener('click', (event) => {
-    const target = event.target;
-    if (target instanceof HTMLElement && target.closest('button')) {
-      return;
-    }
+    event.preventDefault();
     fileInput.click();
-  });
-  dropZone.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      fileInput.click();
-    }
   });
   dropZone.addEventListener('dragover', (event) => {
     event.preventDefault();
@@ -618,12 +609,8 @@ function bindCredentialPersistence() {
 }
 
 function bindExtractForm() {
-  const { form, submit, loading, result, fileInput, trigger } = elements.extract;
+  const { form, submit, loading, result, fileInput } = elements.extract;
   if (!form || !submit || !loading || !result || !fileInput) return;
-
-  if (trigger) {
-    trigger.addEventListener('click', () => fileInput.click());
-  }
 
   fileInput.addEventListener('change', updateFileNameLabel);
 
