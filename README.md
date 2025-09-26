@@ -187,3 +187,20 @@ Use `AIClient` in your controllers or background services once registered.
 * Broaden the dataset and labels for the classifier and predictive models.
 * Add retries, telemetry, and circuit breakers on the .NET side.
 * Experiment with LangGraph deep agents to orchestrate invoice automation end-to-end (see [`docs/deep_agents.md`](docs/deep_agents.md)).
+
+## Unified local workflow (React + FastAPI)
+
+To run the React workspace against the FastAPI service during development:
+
+1. Follow the Python service steps above and keep `uvicorn` running (default port `8088`).
+2. In another terminal:
+
+   ```bash
+   cd apps/ui
+   cp .env.example .env.local # optional but recommended
+   npm install
+   npm run dev
+   ```
+
+3. Visit `http://localhost:5173`, open **Settings → API access**, and paste your `X-API-Key` and `X-License` values. The UI now calls
+   the live endpoints (`/workspace/...`, `/invoices/...`, etc.) directly.
