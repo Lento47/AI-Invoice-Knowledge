@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import Request
 from fastapi.responses import StreamingResponse
+from fastapi.testclient import TestClient
 from starlette.templating import _TemplateResponse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,9 @@ try:
     from api.routers import tica  # noqa: F401
 except ImportError:
     tica = None
+
+
+client = TestClient(app)
 
 
 def _build_request() -> Request:
@@ -69,6 +73,35 @@ def test_invoice_portal_static_asset_paths_resolve() -> None:
 
     assert css_file.exists()
     assert js_file.exists()
+
+
+def test_portal_accessible_without_api_key() -> None:
+    response = client.get("/portal")
+
+    assert response.status_code == 200
+    assert "Invoice Operations Portal" in response.text
+
+
+def test_static_asset_accessible_without_api_key() -> None:
+    response = client.get("/static/css/invoice_portal.css")
+
+    assert response.status_code == 200
+    assert "invoice-portal" in response.text
+
+
+def test_protected_api_routes_still_require_api_key() -> None:
+    response = client.get("/models/classifier/status")
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Unauthorized"}
+
+    authed = client.get(
+        "/models/classifier/status",
+        headers={"X-API-Key": os.environ["API_KEY"]},
+    )
+
+    assert authed.status_code == 401
+    assert authed.json() == {"detail": "License token is required."}
 
 
 async def _collect_body(response: StreamingResponse) -> bytes:

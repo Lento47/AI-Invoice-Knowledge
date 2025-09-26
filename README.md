@@ -71,7 +71,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    python -m uvicorn api.main:app --reload --port 8088
  ````
 
-4. Test the endpoints (remember to include your `X-API-Key` header on authenticated routes):
+4. Test the API endpoints (remember to include your `X-API-Key` header on authenticated routes):
 
 ````bash
    curl http://localhost:8088/health/
@@ -86,7 +86,7 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
 ````
 
-5. Open the interactive portal at http://localhost:8088/portal to upload invoices, classify text, and score predictions from the browser. If your build includes the customs module, you can also export Costa Rica TICA-compliant PDFs. The UI surfaces validation errors (401/403/413) directly and can optionally remember your API key/license token. See docs/invoice_portal.md for a guided tour of each workflow.
+5. Open the interactive portal at http://localhost:8088/portal to upload invoices, classify text, and score predictions from the browser. This page (and other static assets such as `/static/...` and `/admin`) is now publicly readable, so you can load the UI without sending an API key; individual actions still prompt for credentials when required. If your build includes the customs module, you can also export Costa Rica TICA-compliant PDFs. The UI surfaces validation errors (401/403/413) directly and can optionally remember your API key/license token. See docs/invoice_portal.md for a guided tour of each workflow.
 
 
 6. (Optional) Interact with the classifier management endpoints:
@@ -108,7 +108,7 @@ Common overrides:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `AI_API_KEY` / `API_KEY` | *unset* | Shared secret required in the `X-API-Key` header for all non-health routes. |
+| `AI_API_KEY` / `API_KEY` | *unset* | Shared secret required in the `X-API-Key` header for API routes. Static pages such as `/`, `/portal`, `/admin`, and files under `/static` do not require it. |
 | `ADMIN_API_KEY` | *unset* | Token required for the administrative API and UI. Falls back to `AI_API_KEY` if absent. |
 | `ALLOW_ANONYMOUS` | `false` | Allow requests without an API key (not recommended for production). |
 | `MAX_UPLOAD_BYTES` | `5242880` | Maximum allowed size for uploaded invoice files (default: 5 MiB). |
