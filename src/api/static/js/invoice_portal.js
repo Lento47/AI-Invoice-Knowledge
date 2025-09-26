@@ -222,6 +222,9 @@ function clearResult(container) {
   if (!container) return;
   container.innerHTML = '';
   container.classList.remove('has-error');
+  container.removeAttribute('role');
+  container.setAttribute('aria-live', 'polite');
+  container.removeAttribute('aria-atomic');
 }
 
 function setResult(container, html, variant = 'assistant') {
@@ -234,6 +237,15 @@ function setResult(container, html, variant = 'assistant') {
     </div>
   `;
   container.classList.toggle('has-error', variant === 'error');
+  if (variant === 'error') {
+    container.setAttribute('role', 'alert');
+    container.setAttribute('aria-live', 'assertive');
+    container.setAttribute('aria-atomic', 'true');
+  } else {
+    container.removeAttribute('role');
+    container.setAttribute('aria-live', 'polite');
+    container.removeAttribute('aria-atomic');
+  }
 }
 
 function renderError(container, message, status) {
