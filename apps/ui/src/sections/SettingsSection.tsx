@@ -1,6 +1,6 @@
 import { Card } from '../components/Card';
 import { ThemeMode, useTheme } from '../hooks/useTheme';
-import { accentSwatches, settingToggles } from '../data/mockData';
+import { accentSwatches, settingToggles } from '../data/settings';
 
 export const SettingsSection = () => {
   const { mode, setMode, effectiveTheme } = useTheme();
