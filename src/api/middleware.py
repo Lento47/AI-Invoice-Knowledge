@@ -90,7 +90,7 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
             self._limiter = None
 
     def _identity_from_request(self, request: Request) -> tuple[str, str]:
-        license_header = request.headers.get("X-License-Key")
+        license_header = request.headers.get(HEADER_NAME)
         if license_header:
             identity = f"license:{license_header}"
             label = "license"

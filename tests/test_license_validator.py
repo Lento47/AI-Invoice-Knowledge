@@ -21,7 +21,7 @@ if str(SRC_DIR) not in sys.path:
 os.environ.setdefault("API_KEY", "test-secret")
 
 from ai_invoice.config import settings
-from api.license_validator import get_license_claims
+from api.license_validator import HEADER_NAME, get_license_claims
 from api.security import reset_license_verifier_cache, require_license_token
 
 
@@ -86,10 +86,10 @@ def configure_license(tmp_path: Path) -> Iterator[tuple[Path, Path]]:
         reset_license_verifier_cache()
 
 
-def _build_request(token: str | None) -> Request:
+def _build_request(token: str | None, *, header_name: str = HEADER_NAME) -> Request:
     headers = []
     if token is not None:
-        headers.append((b"x-license", token.encode("utf-8")))
+        headers.append((header_name.lower().encode("utf-8"), token.encode("utf-8")))
     scope = {
         "type": "http",
         "method": "GET",
@@ -140,10 +140,26 @@ def test_validator_rejects_tampered_and_expired_tokens(configure_license: tuple[
     expired_token = expired["token"]
 
     expired_request = _build_request(expired_token)
+
     with pytest.raises(HTTPException) as expired_exc:
         require_license_token(expired_request)
     assert expired_exc.value.status_code == 401
     assert "expired" in expired_exc.value.detail.lower()
+
+
+def test_portal_headers_allow_license_access(configure_license: tuple[Path, Path]) -> None:
+    private_key, _ = configure_license
+    expires = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
+    response = _run_cli(private_key, expires=expires)
+    token = response["token"]
+
+    request = _build_request(token, header_name=HEADER_NAME)
+    request.scope["headers"].append((b"x-api-key", b"test-secret"))
+
+    payload = require_license_token(request)
+
+    assert payload.tenant.id == "tenant-123"
+    assert request.headers.get(HEADER_NAME) == token
 
 
 def test_get_license_claims_raises_when_trial_expired() -> None:

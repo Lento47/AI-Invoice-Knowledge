@@ -14,6 +14,8 @@ from ai_invoice.license import (
     LicenseVerifier,
 )
 
+from .license_validator import HEADER_NAME
+
 
 @lru_cache(maxsize=4)
 def _build_verifier(public_key_path: str) -> LicenseVerifier:
@@ -34,7 +36,7 @@ def get_license_verifier() -> LicenseVerifier:
 
 
 def require_license_token(request: Request) -> LicensePayload:
-    token = request.headers.get("X-License")
+    token = request.headers.get(HEADER_NAME)
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="License token is required.")
 

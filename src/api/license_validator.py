@@ -13,7 +13,7 @@ from fastapi import HTTPException, Request, status
 from ai_invoice.config import Settings, settings
 
 
-HEADER_NAME = "X-License-Token"
+HEADER_NAME = "X-License"
 _DIGEST_INFO_SHA256 = bytes.fromhex(
     "3031300d060960864801650304020105000420"
 )
