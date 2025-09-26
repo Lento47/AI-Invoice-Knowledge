@@ -89,6 +89,26 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
         else:
             self._limiter = None
 
+    def _requires_api_key(self, request: Request) -> bool:
+        """Return True when the request must supply an API key."""
+
+        method = request.method.upper()
+        if method == "OPTIONS":
+            # Always allow CORS preflight requests to proceed.
+            return False
+
+        path = request.url.path or "/"
+        normalized = path.rstrip("/") or "/"
+
+        # Public read-only resources that should remain accessible without an API key.
+        if normalized in {"/", "/portal", "/admin", "/health"}:
+            return False
+
+        if path.startswith("/static/") or normalized == "/static":
+            return False
+
+        return True
+
     def _identity_from_request(self, request: Request) -> tuple[str, str]:
         license_header = request.headers.get(HEADER_NAME)
         if license_header:
@@ -118,7 +138,8 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
             claims: LicenseClaims | None = None
             trial_status: TrialStatus | None = None
             trial_error: str | None = None
-            if request.url.path.rstrip("/") != "/health":
+            requires_api_key = self._requires_api_key(request)
+            if requires_api_key:
                 header = request.headers.get("X-API-Key")
                 if not _is_authorized(header, self.config):
                     status_code = status.HTTP_401_UNAUTHORIZED
