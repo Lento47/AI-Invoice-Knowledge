@@ -17,7 +17,7 @@ from ai_invoice.config import Settings, settings
 from ai_invoice.license import LicenseExpiredError, LicenseVerificationError
 from ai_invoice.trial import TrialStatus, resolve_trial_claims
 from .license_validator import HEADER_NAME, LicenseClaims, build_license_claims
-from .security import get_license_verifier, require_license_token
+from .security import get_license_verifier
 
 LOGGER_NAME = "ai_invoice.api.middleware"
 
@@ -261,6 +261,10 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
             )
 
 
+def _license_enforcement_configured(config: Settings) -> bool:
+    return bool(getattr(config, "license_public_key_path", None) or getattr(config, "license_public_key", None))
+
+
 def require_api_key(request: Request) -> None:
     """Dependency to enforce API key validation for specific routes."""
     # Skip health explicitly
@@ -320,5 +324,21 @@ def configure_middleware(app: FastAPI) -> None:
     )
 
 
+def ensure_license_if_configured(request: Request) -> LicenseClaims | None:
+    """Ensure a license is present when verification is enabled."""
+
+    trial_error = getattr(request.state, "trial_error_detail", None)
+    if isinstance(trial_error, str) and trial_error.strip():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=trial_error)
+
+    claims = getattr(request.state, "license_claims", None)
+
+    if _license_enforcement_configured(settings):
+        if not isinstance(claims, LicenseClaims):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing license token.")
+
+    return claims if isinstance(claims, LicenseClaims) else None
+
+
 # Convenience list for route-level dependency injection if desired:
-Dependencies = [Depends(require_api_key), Depends(require_license_token)]
+Dependencies = [Depends(require_api_key), Depends(ensure_license_if_configured)]
