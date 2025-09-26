@@ -85,15 +85,15 @@
         </div>
         <div class="card__body card__body--spacious">
           <form id="extract-form" class="card__section" novalidate>
-            <div class="drop-zone" id="extract-drop-zone" role="button" tabindex="0" aria-label="Upload an invoice file">
-              <div class="drop-zone__hint">
+            <button type="button" class="drop-zone" id="extract-drop-zone" aria-labelledby="extract-drop-zone-label" aria-describedby="extract-file-name">
+              <div class="drop-zone__hint" id="extract-drop-zone-label">
                 <strong>Drop invoice files here</strong>
                 <span>or</span>
               </div>
-              <button type="button" class="button button--outline" id="extract-file-button">Choose a file</button>
+              <span class="button button--outline drop-zone__action" id="extract-file-button">Choose a file</span>
               <input type="file" id="extract-file" name="file" accept=".pdf,.png,.jpg,.jpeg" aria-hidden="true" tabindex="-1" />
               <p class="drop-zone__file" id="extract-file-name">No file selected</p>
-            </div>
+            </button>
             <div class="form-actions">
               <button type="submit" class="button button--primary" id="extract-submit">Extract invoice</button>
               <div class="loading" id="extract-loading" aria-live="polite" hidden>Processing…</div>
