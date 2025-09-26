@@ -61,14 +61,24 @@ export const normaliseErrorDetail = (detail: unknown): string => {
   return String(detail);
 };
 
-const buildUrl = (path: string): string => {
-  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+export const buildUrl = (path: string): string => {
+  const rawBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+  const base = rawBase.trim();
+  const trimmedPath = path.trim();
+
   if (!base) {
-    return path.startsWith('/') ? path : `/${path}`;
+    if (!trimmedPath) return '/';
+    return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
   }
-  const trimmedBase = base.endsWith('/') ? base.slice(0, -1) : base;
-  const trimmedPath = path.startsWith('/') ? path.slice(1) : path;
-  return `${trimmedBase}/${trimmedPath}`;
+
+  const normalisedBase = base.replace(/\/+$/, '');
+  const normalisedPath = trimmedPath.replace(/^\/+/, '');
+
+  if (!normalisedPath) {
+    return normalisedBase;
+  }
+
+  return `${normalisedBase}/${normalisedPath}`;
 };
 
 type RequestOptions = {
