@@ -19,7 +19,7 @@ The invoice portal is a FastAPI-powered workspace that bundles the most common i
 The portal uses the same security middleware as the REST API:
 
 - **X-API-Key** – required on every non-health request when `API_KEY` (or `AI_API_KEY`) is configured. Enter the key in the *Authentication* card. You can optionally store the value in `localStorage` by ticking **“Remember these secrets on this device”**.
-- **X-License-Token** – required when license enforcement is enabled. Paste a signed token containing the necessary feature flags. The UI never persists the token unless you opt in.
+- **X-License** – required when license enforcement is enabled. Paste a signed token containing the necessary feature flags. The UI never persists the token unless you opt in.
 
 If you do not enable the “remember” toggle the secrets stay in memory for the duration of the tab only. Clearing the toggle immediately wipes any stored values.
 

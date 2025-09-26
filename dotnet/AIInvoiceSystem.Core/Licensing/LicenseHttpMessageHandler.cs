@@ -7,7 +7,7 @@ public sealed class LicenseHttpMessageHandler : DelegatingHandler
     private readonly ILicenseManager _licenseManager;
     private readonly ILogger<LicenseHttpMessageHandler> _logger;
 
-    public const string LicenseHeaderName = "X-License-Token";
+    public const string LicenseHeaderName = "X-License";
 
     public LicenseHttpMessageHandler(ILicenseManager licenseManager, ILogger<LicenseHttpMessageHandler> logger)
     {

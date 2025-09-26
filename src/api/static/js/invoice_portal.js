@@ -160,7 +160,7 @@ function buildHeaders(additional = {}) {
   });
   const { apiKey, licenseToken } = readCredentials();
   if (apiKey) headers.set('X-API-Key', apiKey);
-  if (licenseToken) headers.set('X-License-Token', licenseToken);
+  if (licenseToken) headers.set('X-License', licenseToken);
   return headers;
 }
 
