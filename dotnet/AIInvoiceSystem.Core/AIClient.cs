@@ -310,7 +310,8 @@ public sealed record InvoiceExtractionDto(
     string? buyer_name,
     string? buyer_tax_id,
     List<LineItemDto> items,
-    string raw_text);
+    string raw_text,
+    double? ocr_confidence);
 
 public sealed record ClassificationResultDto(string label, double proba);
 

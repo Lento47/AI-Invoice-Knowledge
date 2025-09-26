@@ -4,14 +4,16 @@ import numpy as np
 
 from .classify.model import predict_proba_texts
 from .nlp_extract.parser import parse_structured
-from .ocr.engine import pdf_or_image_to_text
+from .ocr.engine import run_ocr
 from .predictive.model import predict_payment_days
 from .schemas import ClassificationResult, InvoiceExtraction, PredictiveResult
 
 
 def extract_invoice(file_bytes: bytes) -> InvoiceExtraction:
-    text = pdf_or_image_to_text(file_bytes)
-    return parse_structured(text)
+    ocr_result = run_ocr(file_bytes)
+    extraction = parse_structured(ocr_result.text, ocr_confidence=ocr_result.average_confidence)
+    extraction.raw_text = ocr_result.text
+    return extraction
 
 
 def classify_text(raw_text: str) -> ClassificationResult:

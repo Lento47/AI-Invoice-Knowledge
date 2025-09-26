@@ -7,7 +7,7 @@ from ..ocr.postprocess import clean_text, normalize_amount
 from ..schemas import InvoiceExtraction, LineItem
 
 
-def parse_structured(raw: str) -> InvoiceExtraction:
+def parse_structured(raw: str, *, ocr_confidence: float | None = None) -> InvoiceExtraction:
     txt = clean_text(raw)
     invoice_number = first_regex(txt, PATTERNS["invoice_number"])
     invoice_date = first_regex(txt, PATTERNS["invoice_date"])
@@ -46,4 +46,5 @@ def parse_structured(raw: str) -> InvoiceExtraction:
         buyer_tax_id=None,
         items=items,
         raw_text=txt,
+        ocr_confidence=ocr_confidence,
     )

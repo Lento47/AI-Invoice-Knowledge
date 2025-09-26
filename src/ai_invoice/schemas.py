@@ -1,7 +1,22 @@
-from typing import List
-from typing import Optional
+from typing import List, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+
+class OCRPage(BaseModel):
+    page_number: int
+    text: str
+    confidence: Optional[float] = None
+    width: int
+    height: int
+
+
+class OCRResult(BaseModel):
+    source: Literal["pdf", "image"]
+    text: str
+    average_confidence: Optional[float] = None
+    pages: List[OCRPage] = Field(default_factory=list)
 
 
 class LineItem(BaseModel):
@@ -25,6 +40,7 @@ class InvoiceExtraction(BaseModel):
     buyer_tax_id: Optional[str]
     items: List[LineItem] = Field(default_factory=list)
     raw_text: str
+    ocr_confidence: Optional[float] = None
 
 
 class ClassificationResult(BaseModel):
