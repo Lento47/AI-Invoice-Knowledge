@@ -46,7 +46,7 @@ def _get_route(path: str, method: str) -> APIRoute:
 @pytest.fixture()
 def temp_predictive_model_path(tmp_path, monkeypatch):
     model_path = tmp_path / "predictive.joblib"
-    monkeypatch.setattr(predictive_model, "MODEL_PATH", str(model_path))
+    monkeypatch.setattr(predictive_model, "_model_path", lambda: str(model_path))
     yield
     if model_path.exists():
         model_path.unlink()
