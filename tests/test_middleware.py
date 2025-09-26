@@ -143,11 +143,13 @@ def _claims(*features: str) -> LicenseClaims:
     )
 
 
-def _build_request(headers: list[tuple[bytes, bytes]] | None = None) -> Request:
+def _build_request(
+    headers: list[tuple[bytes, bytes]] | None = None, *, path: str = "/invoices/classify"
+) -> Request:
     scope = {
         "type": "http",
         "method": "POST",
-        "path": "/invoices/classify",
+        "path": path,
         "headers": headers or [],
     }
     return Request(scope)
@@ -236,6 +238,26 @@ async def test_missing_license_token_is_rejected(api_key_guard, license_guard) -
 
     assert response.status_code == 401
     assert response.body == b'{"detail":"Missing license token."}'
+
+
+async def test_health_request_without_license_does_not_raise(rate_limit_guard) -> None:
+    previous_api_key = settings.api_key
+    previous_license_key = settings.license_public_key
+    settings.api_key = None
+    settings.license_public_key = None
+    try:
+        middleware = _middleware()
+
+        async def call_next(request: Request) -> Response:
+            return Response("ok")
+
+        request = _build_request(path="/health")
+        response = await middleware.dispatch(request, call_next)
+    finally:
+        settings.api_key = previous_api_key
+        settings.license_public_key = previous_license_key
+
+    assert response.status_code == 200
 
 
 async def test_authorized_request_logs(
