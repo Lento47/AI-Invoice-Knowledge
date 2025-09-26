@@ -67,10 +67,6 @@ else:
 
 if _STATIC_FILES is not None:
     app.mount("/static", _STATIC_FILES, name="static")
-
-
-if _STATIC_FILES is not None:
-    app.mount("/static", _STATIC_FILES, name="static")
 else:  # pragma: no cover - only exercised when static assets are missing
     STARTUP_LOGGER.warning("Continuing without /static mount; static assets not found")
 
