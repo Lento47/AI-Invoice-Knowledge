@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Any, Sequence
 
 import pytest
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from httpx import AsyncClient
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
 from starlette.responses import Response
@@ -21,9 +22,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 os.environ.setdefault("API_KEY", "test-secret")
 
+import ai_invoice.service as invoice_service
 from ai_invoice.config import settings
+from ai_invoice.schemas import ClassificationResult
 from api.license_validator import HEADER_NAME, LicenseClaims
-from api.middleware import APIKeyAndLoggingMiddleware, BodyLimitMiddleware
+from api.middleware import APIKeyAndLoggingMiddleware, BodyLimitMiddleware, configure_middleware
+from api.routers import invoices as invoices_router
 from api.routers.invoices import extract_invoice_endpoint
 from api.security import reset_license_verifier_cache
 
@@ -289,6 +293,46 @@ async def test_trial_fallback_allows_protected_request(
         monkeypatch.delenv("AI_INVOICE_TRIAL_PATH", raising=False)
 
     assert response.status_code == 200
+
+
+async def test_trial_fallback_allows_router_access(
+    api_key_guard, rate_limit_guard, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    previous_license_path = settings.license_public_key_path
+    previous_license_key = settings.license_public_key
+
+    trial_path = tmp_path / "trial-router.json"
+    monkeypatch.setenv("AI_INVOICE_TRIAL_PATH", str(trial_path))
+    settings.license_public_key_path = None
+    settings.license_public_key = None
+
+    app = FastAPI()
+    configure_middleware(app)
+    app.include_router(invoices_router.router)
+
+    monkeypatch.setattr(
+        invoice_service,
+        "classify_text",
+        lambda text: ClassificationResult(label="trial", proba=0.9),
+    )
+
+    headers = {"X-API-Key": settings.api_key or "test-secret"}
+
+    try:
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.post(
+                "/invoices/classify",
+                headers=headers,
+                json={"text": "hola"},
+            )
+    finally:
+        settings.license_public_key_path = previous_license_path
+        settings.license_public_key = previous_license_key
+        monkeypatch.delenv("AI_INVOICE_TRIAL_PATH", raising=False)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload == {"label": "trial", "proba": 0.9}
 
 
 async def test_authorized_request_logs(

@@ -324,8 +324,8 @@ def configure_middleware(app: FastAPI) -> None:
     )
 
 
-def ensure_license_if_configured(request: Request) -> LicenseClaims | None:
-    """Ensure a license is present when verification is enabled."""
+def require_license_claims_if_configured(request: Request) -> LicenseClaims | None:
+    """Retrieve license claims from middleware state when enforcement is active."""
 
     trial_error = getattr(request.state, "trial_error_detail", None)
     if isinstance(trial_error, str) and trial_error.strip():
@@ -341,4 +341,4 @@ def ensure_license_if_configured(request: Request) -> LicenseClaims | None:
 
 
 # Convenience list for route-level dependency injection if desired:
-Dependencies = [Depends(require_api_key), Depends(ensure_license_if_configured)]
+Dependencies = [Depends(require_api_key), Depends(require_license_claims_if_configured)]

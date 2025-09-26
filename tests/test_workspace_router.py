@@ -13,7 +13,7 @@ os.environ.setdefault("API_KEY", "test-secret")
 
 from api.main import app  # noqa: E402
 from api.license_validator import HEADER_NAME  # noqa: E402
-from api.middleware import ensure_license_if_configured  # noqa: E402
+from api.middleware import require_license_claims_if_configured  # noqa: E402
 from api.license_validator import LicenseClaims  # noqa: E402
 
 
@@ -33,7 +33,7 @@ def _mock_license_dependency(request):  # type: ignore[override]
     return claims
 
 
-app.dependency_overrides[ensure_license_if_configured] = _mock_license_dependency
+app.dependency_overrides[require_license_claims_if_configured] = _mock_license_dependency
 
 HEADERS = {
     "X-API-Key": os.environ["API_KEY"],

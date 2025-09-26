@@ -12,10 +12,13 @@ from ai_invoice.predictive.model import (
 from ai_invoice.config import settings
 
 from ..license_validator import LicenseClaims, ensure_feature, require_feature_flag
+from ..middleware import require_api_key, require_license_claims_if_configured
 
-from ..middleware import Dependencies
-
-router = APIRouter(prefix="/models/predictive", tags=["models"], dependencies=Dependencies)
+router = APIRouter(
+    prefix="/models/predictive",
+    tags=["models"],
+    dependencies=[Depends(require_api_key), Depends(require_license_claims_if_configured)],
+)
 
 
 def _claims_or_none(value: object) -> LicenseClaims | None:
