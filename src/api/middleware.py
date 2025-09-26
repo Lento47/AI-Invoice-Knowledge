@@ -116,6 +116,8 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
         try:
             # Allow health without auth (both /health and /health/)
             claims: LicenseClaims | None = None
+            trial_status: TrialStatus | None = None
+            trial_error: str | None = None
             if request.url.path.rstrip("/") != "/health":
                 header = request.headers.get("X-API-Key")
                 if not _is_authorized(header, self.config):
@@ -146,9 +148,6 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                             {"detail": "Too Many Requests"}, status_code=status_code
                         )
                         return response
-
-                trial_status: TrialStatus | None = None
-                trial_error: str | None = None
 
                 if getattr(self.config, "license_public_key", None):
                     token = request.headers.get(HEADER_NAME)
