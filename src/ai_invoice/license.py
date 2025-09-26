@@ -5,12 +5,13 @@ from __future__ import annotations
 import base64
 import binascii
 import json
-import subprocess
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 
@@ -108,6 +109,7 @@ class LicenseVerifier:
 
         self._public_key_path = Path(public_key_path) if public_key_path is not None else None
         self._public_key_data = public_key_data
+        self._public_key: Ed25519PublicKey | None = None
 
     @classmethod
     def from_public_key_path(cls, path: str | Path) -> "LicenseVerifier":
@@ -123,56 +125,38 @@ class LicenseVerifier:
             raise ValueError("Public key string must not be empty.")
         return cls(None, public_key_data=normalized)
 
-    def _verify_signature(self, payload: bytes, signature: bytes) -> None:
-        with tempfile.NamedTemporaryFile(delete=False) as payload_file:
-            payload_file.write(payload)
-            payload_path = Path(payload_file.name)
-        with tempfile.NamedTemporaryFile(delete=False) as signature_file:
-            signature_file.write(signature)
-            signature_path = Path(signature_file.name)
+    def _load_public_key(self) -> Ed25519PublicKey:
+        if self._public_key is not None:
+            return self._public_key
 
-        temp_key_path: Path | None = None
-        key_path = self._public_key_path
-        if key_path is None:
+        if self._public_key_path is not None:
+            try:
+                key_bytes = self._public_key_path.read_bytes()
+            except OSError as exc:  # pragma: no cover - defensive
+                raise LicenseVerificationError("Public key file could not be read.") from exc
+        else:
             if not self._public_key_data:  # pragma: no cover - defensive
                 raise LicenseVerificationError("License verifier is missing public key data.")
-            with tempfile.NamedTemporaryFile(delete=False) as key_file:
-                key_file.write(self._public_key_data.encode("utf-8"))
-                temp_key_path = Path(key_file.name)
-            key_path = temp_key_path
+            key_bytes = self._public_key_data.encode("utf-8")
 
         try:
-            result = subprocess.run(
-                [
-                    "openssl",
-                    "pkeyutl",
-                    "-verify",
-                    "-pubin",
-                    "-inkey",
-                    str(key_path),
-                    "-rawin",
-                    "-in",
-                    str(payload_path),
-                    "-sigfile",
-                    str(signature_path),
-                ],
-                capture_output=True,
-                text=True,
-            )
-        except FileNotFoundError as exc:  # pragma: no cover - defensive
-            raise LicenseVerificationError("OpenSSL executable is required for verification.") from exc
-        finally:
-            payload_path.unlink(missing_ok=True)
-            signature_path.unlink(missing_ok=True)
-            if temp_key_path is not None:
-                temp_key_path.unlink(missing_ok=True)
+            public_key = serialization.load_pem_public_key(key_bytes)
+        except ValueError as exc:
+            raise LicenseVerificationError("Public key is not valid PEM data.") from exc
 
-        if result.returncode != 0:
-            detail = (result.stderr or result.stdout or "").strip()
-            message = "License signature is invalid."
-            if detail:
-                message = f"{message} ({detail})"
-            raise LicenseVerificationError(message)
+        if not isinstance(public_key, Ed25519PublicKey):
+            raise LicenseVerificationError("Public key must be an Ed25519 key.")
+
+        self._public_key = public_key
+        return public_key
+
+    def _verify_signature(self, payload: bytes, signature: bytes) -> None:
+        public_key = self._load_public_key()
+
+        try:
+            public_key.verify(signature, payload)
+        except InvalidSignature as exc:
+            raise LicenseVerificationError("License signature is invalid.") from exc
 
     def verify_token(self, token: str) -> LicensePayload:
         """Return the decoded payload if the token is authentic and unexpired."""
