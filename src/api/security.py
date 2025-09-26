@@ -18,8 +18,12 @@ from .license_validator import HEADER_NAME
 
 
 @lru_cache(maxsize=4)
-def _build_verifier(public_key_path: str) -> LicenseVerifier:
-    return LicenseVerifier.from_public_key_path(public_key_path)
+def _build_verifier(public_key_path: str | None, public_key_data: str | None) -> LicenseVerifier:
+    if public_key_data:
+        return LicenseVerifier.from_public_key_string(public_key_data)
+    if public_key_path:
+        return LicenseVerifier.from_public_key_path(public_key_path)
+    raise RuntimeError("License public key configuration is missing.")
 
 
 def reset_license_verifier_cache() -> None:
@@ -30,9 +34,14 @@ def reset_license_verifier_cache() -> None:
 
 def get_license_verifier() -> LicenseVerifier:
     public_key_path = getattr(settings, "license_public_key_path", None)
-    if not public_key_path:
-        raise RuntimeError("LICENSE_PUBLIC_KEY_PATH is not configured.")
-    return _build_verifier(public_key_path)
+    if public_key_path:
+        return _build_verifier(public_key_path, None)
+
+    public_key_data = getattr(settings, "license_public_key", None)
+    if public_key_data:
+        return _build_verifier(None, public_key_data)
+
+    raise RuntimeError("LICENSE_PUBLIC_KEY_PATH or LICENSE_PUBLIC_KEY must be configured.")
 
 
 def require_license_token(request: Request) -> LicensePayload:
