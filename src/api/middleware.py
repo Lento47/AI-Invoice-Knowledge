@@ -14,9 +14,10 @@ from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
 from ai_invoice.config import Settings, settings
+from ai_invoice.license import LicenseExpiredError, LicenseVerificationError
 from ai_invoice.trial import TrialStatus, resolve_trial_claims
-from .license_validator import HEADER_NAME, LicenseClaims, validate_license_token
-from .security import require_license_token
+from .license_validator import HEADER_NAME, LicenseClaims, build_license_claims
+from .security import get_license_verifier, require_license_token
 
 LOGGER_NAME = "ai_invoice.api.middleware"
 
@@ -170,10 +171,42 @@ class APIKeyAndLoggingMiddleware(BaseHTTPMiddleware):
                         )
                         return response
 
-                if getattr(self.config, "license_public_key", None):
+                if getattr(self.config, "license_public_key_path", None):
                     token = request.headers.get(HEADER_NAME)
+                    if token is None or not token.strip():
+                        status_code = status.HTTP_401_UNAUTHORIZED
+                        response = JSONResponse(
+                            {"detail": "Missing license token."}, status_code=status_code
+                        )
+                        return response
+
                     try:
-                        claims = validate_license_token(token, config=self.config)
+                        verifier = get_license_verifier()
+                    except Exception:
+                        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+                        response = JSONResponse(
+                            {"detail": "License verification is not configured."},
+                            status_code=status_code,
+                        )
+                        return response
+
+                    try:
+                        payload = verifier.verify_token(token.strip())
+                    except LicenseExpiredError:
+                        status_code = status.HTTP_403_FORBIDDEN
+                        response = JSONResponse(
+                            {"detail": "License token expired."}, status_code=status_code
+                        )
+                        return response
+                    except LicenseVerificationError:
+                        status_code = status.HTTP_401_UNAUTHORIZED
+                        response = JSONResponse(
+                            {"detail": "Invalid license token."}, status_code=status_code
+                        )
+                        return response
+
+                    try:
+                        claims = build_license_claims(payload, config=self.config)
                     except HTTPException as exc:
                         status_code = exc.status_code
                         response = JSONResponse({"detail": exc.detail}, status_code=status_code)
