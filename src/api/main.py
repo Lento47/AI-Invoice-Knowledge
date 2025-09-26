@@ -4,7 +4,7 @@ import logging
 import sys
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -118,7 +118,7 @@ def invoice_portal_legacy(request: Request) -> HTMLResponse:
 
 
 @app.get("/portal/{asset_path:path}", include_in_schema=False)
-def invoice_portal_assets(asset_path: str) -> FileResponse | HTMLResponse:
+def invoice_portal_assets(asset_path: str) -> Response:
     """Serve built static assets and provide an SPA-style fallback for unknown routes."""
 
     # Ensure the legacy portal remains reachable even when a build exists.
