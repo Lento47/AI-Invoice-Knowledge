@@ -21,6 +21,7 @@ dependencies = [
   "spacy>=3.7",
   "faker>=25.0",
   "deepagents>=0.0.7",
+  "cryptography>=42.0",
 ]
 
 [tool.uv]
