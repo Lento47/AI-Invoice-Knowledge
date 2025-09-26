@@ -102,8 +102,12 @@ def decode_license_token(token: str) -> dict[str, Any]:
 class LicenseVerifier:
     """Validate license tokens using a trusted Ed25519 public key."""
 
-    def __init__(self, public_key_path: Path) -> None:
-        self._public_key_path = public_key_path
+    def __init__(self, public_key_path: Path | None, *, public_key_data: str | None = None) -> None:
+        if public_key_path is None and not public_key_data:
+            raise ValueError("A public key path or PEM string must be provided.")
+
+        self._public_key_path = Path(public_key_path) if public_key_path is not None else None
+        self._public_key_data = public_key_data
 
     @classmethod
     def from_public_key_path(cls, path: str | Path) -> "LicenseVerifier":
@@ -111,6 +115,13 @@ class LicenseVerifier:
         if not key_path.exists():
             raise FileNotFoundError(f"Public key not found at {key_path}.")
         return cls(key_path)
+
+    @classmethod
+    def from_public_key_string(cls, data: str) -> "LicenseVerifier":
+        normalized = data.strip()
+        if not normalized:
+            raise ValueError("Public key string must not be empty.")
+        return cls(None, public_key_data=normalized)
 
     def _verify_signature(self, payload: bytes, signature: bytes) -> None:
         with tempfile.NamedTemporaryFile(delete=False) as payload_file:
@@ -120,6 +131,16 @@ class LicenseVerifier:
             signature_file.write(signature)
             signature_path = Path(signature_file.name)
 
+        temp_key_path: Path | None = None
+        key_path = self._public_key_path
+        if key_path is None:
+            if not self._public_key_data:  # pragma: no cover - defensive
+                raise LicenseVerificationError("License verifier is missing public key data.")
+            with tempfile.NamedTemporaryFile(delete=False) as key_file:
+                key_file.write(self._public_key_data.encode("utf-8"))
+                temp_key_path = Path(key_file.name)
+            key_path = temp_key_path
+
         try:
             result = subprocess.run(
                 [
@@ -128,7 +149,7 @@ class LicenseVerifier:
                     "-verify",
                     "-pubin",
                     "-inkey",
-                    str(self._public_key_path),
+                    str(key_path),
                     "-rawin",
                     "-in",
                     str(payload_path),
@@ -143,6 +164,8 @@ class LicenseVerifier:
         finally:
             payload_path.unlink(missing_ok=True)
             signature_path.unlink(missing_ok=True)
+            if temp_key_path is not None:
+                temp_key_path.unlink(missing_ok=True)
 
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip()

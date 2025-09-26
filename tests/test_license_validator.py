@@ -172,3 +172,29 @@ def test_get_license_claims_raises_when_trial_expired() -> None:
     assert exc.value.status_code == 403
     assert "expired" in exc.value.detail.lower()
 
+
+def test_inline_public_key_configuration(tmp_path: Path) -> None:
+    private_key, public_key_path = _generate_test_keypair(tmp_path)
+    public_key_data = public_key_path.read_text(encoding="utf-8")
+
+    previous_path = settings.license_public_key_path
+    previous_data = settings.license_public_key
+    settings.license_public_key_path = None
+    settings.license_public_key = public_key_data
+    reset_license_verifier_cache()
+
+    try:
+        expires = (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()
+        response = _run_cli(private_key, expires=expires)
+        token = response["token"]
+
+        request = _build_request(token)
+        payload = require_license_token(request)
+
+        assert payload.tenant.id == "tenant-123"
+        assert request.state.license_payload is payload
+    finally:
+        settings.license_public_key_path = previous_path
+        settings.license_public_key = previous_data
+        reset_license_verifier_cache()
+
