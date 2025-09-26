@@ -547,6 +547,32 @@ function updateFileNameLabel() {
   fileName.textContent = file ? file.name : 'No file selected';
 }
 
+function assignFilesFromDrop(fileInput, files) {
+  if (!fileInput || !files || files.length === 0) return false;
+
+  if (typeof DataTransfer !== 'undefined') {
+    try {
+      const dataTransfer = new DataTransfer();
+      Array.from(files).forEach((file) => {
+        dataTransfer.items.add(file);
+      });
+      fileInput.files = dataTransfer.files;
+      return true;
+    } catch (error) {
+      console.warn('Unable to populate file input via DataTransfer', error);
+    }
+  }
+
+  try {
+    fileInput.files = files;
+    return true;
+  } catch (error) {
+    console.warn('Unable to assign drop files directly', error);
+  }
+
+  return false;
+}
+
 function setupDropZone() {
   const { dropZone, fileInput } = elements.extract;
   if (!dropZone || !fileInput) return;
@@ -575,22 +601,7 @@ function setupDropZone() {
     dropZone.classList.remove('is-dragover');
     const files = event.dataTransfer?.files;
     if (!files || files.length === 0) return;
-    const file = files[0];
-    let assigned = false;
-    if (typeof DataTransfer !== 'undefined') {
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      fileInput.files = dataTransfer.files;
-      assigned = true;
-    }
-    if (!assigned) {
-      try {
-        fileInput.files = files;
-        assigned = true;
-      } catch (error) {
-        console.warn('Unable to populate file input from drop event', error);
-      }
-    }
+    const assigned = assignFilesFromDrop(fileInput, files);
     if (!assigned) {
       fileInput.value = '';
     }
