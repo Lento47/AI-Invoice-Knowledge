@@ -18,13 +18,18 @@ from sklearn.preprocessing import StandardScaler
 from ai_invoice.config import settings
 from .features import ALL_FEATURE_COLUMNS, REQUIRED_COLUMNS, build_features
 
-MODEL_PATH = settings.predictive_path
+
+def _model_path() -> str:
+    """Return the configured predictive model path."""
+
+    return settings.predictive_path
 
 
 # ---------- Load/Save ----------
 def load_or_init() -> Pipeline:
-    if os.path.exists(MODEL_PATH):
-        model: Pipeline = joblib.load(MODEL_PATH)
+    path = _model_path()
+    if os.path.exists(path):
+        model: Pipeline = joblib.load(path)
         # Backward/forward compatibility guards
         if not hasattr(model, "feature_columns"):
             model.feature_columns = list(ALL_FEATURE_COLUMNS)
@@ -44,13 +49,15 @@ def load_or_init() -> Pipeline:
 
 
 def save_model(pipe: Pipeline) -> None:
-    os.makedirs(os.path.dirname(MODEL_PATH) or ".", exist_ok=True)
-    joblib.dump(pipe, MODEL_PATH)
+    path = _model_path()
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    joblib.dump(pipe, path)
 
 
 def status() -> dict[str, Any]:
-    present = os.path.exists(MODEL_PATH)
-    info: dict[str, Any] = {"present": present, "path": MODEL_PATH}
+    path = _model_path()
+    present = os.path.exists(path)
+    info: dict[str, Any] = {"present": present, "path": path}
     if present:
         model = load_or_init()
         info["confidence"] = float(getattr(model, "confidence_proxy_", 0.5))

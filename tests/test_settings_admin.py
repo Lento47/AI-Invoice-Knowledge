@@ -10,6 +10,7 @@ from fastapi import HTTPException
 os.environ.setdefault("API_KEY", "pytest-default-key")
 
 from ai_invoice import config
+from ai_invoice.predictive import model as predictive_model
 from api.routers import admin
 
 
@@ -80,6 +81,43 @@ def test_admin_endpoints_apply_updates(tmp_path: Path, monkeypatch: pytest.Monke
     assert persisted["admin_api_key"] == "rotated-admin"
 
     # Reset to shared defaults so other tests see expected values
+    monkeypatch.delenv("AI_INVOICE_SETTINGS_PATH", raising=False)
+    monkeypatch.setenv("AI_API_KEY", "pytest-default-key")
+    config.reload_settings()
+
+
+def test_predictive_path_update_reflected_in_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store_path = tmp_path / "settings.json"
+    monkeypatch.setenv("AI_INVOICE_SETTINGS_PATH", str(store_path))
+    monkeypatch.setenv("AI_API_KEY", "predictive-admin")
+    config.reload_settings()
+
+    envelope = admin.read_settings()
+    updated = envelope.values.model_copy()
+    new_model_path = tmp_path / "alternate" / "predictive.joblib"
+    updated.predictive_path = str(new_model_path)
+
+    result = admin.update_settings(updated)
+
+    assert result.values.predictive_path == str(new_model_path)
+    assert config.settings.predictive_path == str(new_model_path)
+
+    pipeline = predictive_model.load_or_init()
+    predictive_model.save_model(pipeline)
+
+    assert new_model_path.exists()
+
+    status = predictive_model.status()
+    assert status["path"] == str(new_model_path)
+    assert status["present"] is True
+
+    reloaded = predictive_model.load_or_init()
+    assert getattr(reloaded, "feature_columns", None) == getattr(
+        pipeline, "feature_columns", None
+    )
+
     monkeypatch.delenv("AI_INVOICE_SETTINGS_PATH", raising=False)
     monkeypatch.setenv("AI_API_KEY", "pytest-default-key")
     config.reload_settings()
