@@ -49,6 +49,8 @@ configure_middleware(app)
 _BASE_DIR = Path(__file__).resolve().parent
 _TEMPLATE_DIR = _BASE_DIR / "templates"
 _STATIC_DIR = _BASE_DIR / "static"
+_CONSOLE_DIR = _STATIC_DIR / "console"
+_CONSOLE_INDEX = _CONSOLE_DIR / "index.html"
 
 _TEMPLATES = Jinja2Templates(directory=str(_TEMPLATE_DIR))
 
@@ -70,6 +72,16 @@ if _STATIC_FILES is not None:
 else:  # pragma: no cover - only exercised when static assets are missing
     STARTUP_LOGGER.warning("Continuing without /static mount; static assets not found")
 
+_PORTAL_FILES: StaticFiles | None = None
+if _CONSOLE_DIR.is_dir():
+    _PORTAL_FILES = StaticFiles(directory=str(_CONSOLE_DIR), html=True)
+    app.mount("/portal", _PORTAL_FILES, name="portal")
+else:
+    STARTUP_LOGGER.info(
+        "React console assets not found at %s; `/portal` will return a build-missing error.",
+        _CONSOLE_DIR,
+    )
+
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(models.router)
@@ -89,8 +101,21 @@ def admin_portal(request: Request) -> HTMLResponse:
 
 
 @app.get("/portal", response_class=HTMLResponse)
-def invoice_portal(request: Request) -> HTMLResponse:
-    """Render the interactive workspace for invoice operations."""
+def invoice_portal() -> HTMLResponse:
+    """Serve the compiled React console when a build is present."""
+
+    if _CONSOLE_INDEX.is_file():
+        return HTMLResponse(_CONSOLE_INDEX.read_text(encoding="utf-8"))
+
+    raise HTTPException(
+        status_code=503,
+        detail="Console build missing. Run `npm run build` in apps/ui before launching the API.",
+    )
+
+
+@app.get("/portal/legacy", response_class=HTMLResponse)
+def invoice_portal_legacy(request: Request) -> HTMLResponse:
+    """Expose the original Jinja-based portal template for backward compatibility."""
 
     return _TEMPLATES.TemplateResponse(request, "invoice_portal.html", {"request": request})
 

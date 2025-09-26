@@ -22,6 +22,8 @@ To create a production build:
 npm run build
 ```
 
+> **Note:** The FastAPI service serves the compiled console from `src/api/static/console`. Run the build command before starting the backend so `/portal` can return the React app.
+
 ### Project structure
 
 ```
