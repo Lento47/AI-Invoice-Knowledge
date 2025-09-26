@@ -282,14 +282,15 @@ class BodyLimitMiddleware(BaseHTTPMiddleware):
         self.max_len = max_len
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        declared = request.headers.get("content-length")
-        if declared is not None:
-            try:
-                if int(declared) > self.max_len:
-                    raise HTTPException(status_code=413, detail="Payload too large")
-            except ValueError:
-                # If header is malformed, let the request proceed; FastAPI will handle it.
-                pass
+        if self.max_len is not None and self.max_len > 0:
+            declared = request.headers.get("content-length")
+            if declared is not None:
+                try:
+                    if int(declared) > self.max_len:
+                        raise HTTPException(status_code=413, detail="Payload too large")
+                except ValueError:
+                    # If header is malformed, let the request proceed; FastAPI will handle it.
+                    pass
         return await call_next(request)
 
 

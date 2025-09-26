@@ -23,7 +23,7 @@ os.environ.setdefault("API_KEY", "test-secret")
 
 from ai_invoice.config import settings
 from api.license_validator import HEADER_NAME, LicenseClaims
-from api.middleware import APIKeyAndLoggingMiddleware
+from api.middleware import APIKeyAndLoggingMiddleware, BodyLimitMiddleware
 from api.routers.invoices import extract_invoice_endpoint
 from api.security import reset_license_verifier_cache
 
@@ -152,6 +152,8 @@ def _middleware() -> APIKeyAndLoggingMiddleware:
         return None
 
     return APIKeyAndLoggingMiddleware(asgi_app, config=settings)
+
+
 
 
 @pytest.fixture()
@@ -402,6 +404,61 @@ async def test_rate_limit_disabled_when_unset(
     assert all(resp.status_code == 200 for resp in responses)
     assert call_count == len(requests)
 
+
+@pytest.mark.anyio()
+async def test_body_limit_allows_uploads_when_disabled() -> None:
+    previous_limit = settings.max_upload_bytes
+    settings.max_upload_bytes = 0
+    try:
+        async def asgi_app(scope, receive, send):  # pragma: no cover - dummy app
+            return None
+
+        middleware = BodyLimitMiddleware(asgi_app, max_len=settings.max_upload_bytes)
+
+        async def call_next(request: Request) -> Response:
+            return Response("ok")
+
+        body = b"file-contents"
+        request = _build_request(
+            headers=[
+                (b"content-length", str(len(body)).encode("latin-1")),
+                (b"content-type", b"application/octet-stream"),
+            ],
+            path="/upload",
+        )
+        response = await middleware.dispatch(request, call_next)
+    finally:
+        settings.max_upload_bytes = previous_limit
+
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio()
+async def test_body_limit_allows_json_when_disabled() -> None:
+    previous_limit = settings.max_upload_bytes
+    settings.max_upload_bytes = 0
+    try:
+        async def asgi_app(scope, receive, send):  # pragma: no cover - dummy app
+            return None
+
+        middleware = BodyLimitMiddleware(asgi_app, max_len=settings.max_upload_bytes)
+
+        async def call_next(request: Request) -> Response:
+            return Response("ok", media_type="application/json")
+
+        body = json.dumps({"message": "hello"}).encode("utf-8")
+        request = _build_request(
+            headers=[
+                (b"content-length", str(len(body)).encode("latin-1")),
+                (b"content-type", b"application/json"),
+            ],
+            path="/json",
+        )
+        response = await middleware.dispatch(request, call_next)
+    finally:
+        settings.max_upload_bytes = previous_limit
+
+    assert response.status_code == 200
 
 
 async def test_extract_invoice_large_file_rejected() -> None:
