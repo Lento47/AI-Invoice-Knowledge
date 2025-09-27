@@ -8,3 +8,8 @@ ai_invoice_api*
 *.joblib
 !models/*.joblib
 node_modules/
+# Security artifacts (only the sample public verifier is tracked)
+*.pem
+*.crt
+*.key
+!keys/license_public.pem

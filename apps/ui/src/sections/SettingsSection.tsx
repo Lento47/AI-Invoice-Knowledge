@@ -196,6 +196,56 @@ export const SettingsSection = () => {
           ))}
         </div>
       </Card>
+
+      <Card title="Deployment quickstart" eyebrow="Keys & certificates" className="lg:col-span-2">
+        <p className="text-sm">
+          Stage the public license verifier with the service and hand TLS materials to your reverse proxy without hunting for
+          paths. The private Ed25519 key never leaves your secrets store.
+        </p>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Linux hosts</h3>
+            <pre className="rounded-2xl bg-slate-900/90 p-4 text-[0.7rem] leading-relaxed text-slate-100 shadow-inner">
+{String.raw`python scripts/security_provision.py stage-assets \
+  --license-public ./keys/license_public.pem \
+  --license-destination /opt/ai-invoice/keys/license_public.pem \
+  --pin-license-path --systemd-snippet \
+  --api-key $(openssl rand -hex 32) \
+  --admin-key $(openssl rand -hex 32) \
+  --tls-certificate /secure/tls/fullchain.pem \
+  --tls-key /secure/tls/privkey.pem \
+  --tls-directory /etc/ssl/ai-invoice`}
+            </pre>
+            <ul className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+              <li>Public verifier lives at <code className="rounded bg-slate-200 px-1 py-0.5 text-[0.65rem] dark:bg-slate-800">/opt/ai-invoice/keys/license_public.pem</code>.</li>
+              <li>TLS assets remain in <code className="rounded bg-slate-200 px-1 py-0.5 text-[0.65rem] dark:bg-slate-800">/etc/ssl/ai-invoice/</code> for nginx/HAProxy.</li>
+              <li className="font-semibold text-crGreen dark:text-crGreen">Restart the proxy after copying certificates; FastAPI stays HTTP-only.</li>
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Windows hosts</h3>
+            <pre className="rounded-2xl bg-slate-900/90 p-4 text-[0.7rem] leading-relaxed text-slate-100 shadow-inner">
+{String.raw`python scripts/security_provision.py stage-assets \
+  --license-public .\keys\license_public.pem \
+  --license-destination C:\ai-invoice\keys\license_public.pem \
+  --pin-license-path \
+  --api-key YOUR_API_KEY \
+  --admin-key YOUR_ADMIN_KEY \
+  --tls-certificate C:\secure\tls\cert.pem \
+  --tls-key C:\secure\tls\key.pem \
+  --tls-directory C:\ai-invoice\tls`}
+            </pre>
+            <ul className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+              <li>Keep <code className="rounded bg-slate-200 px-1 py-0.5 text-[0.65rem] dark:bg-slate-800">license_private.pem</code> in your vault or HSM—this script never copies it.</li>
+              <li>Generate secrets with <code className="rounded bg-slate-200 px-1 py-0.5 text-[0.65rem] dark:bg-slate-800">python -c "import secrets; print(secrets.token_hex(32))"</code> or your vault tooling.</li>
+              <li>TLS keys can be imported into the Windows certificate store or staged in <code className="rounded bg-slate-200 px-1 py-0.5 text-[0.65rem] dark:bg-slate-800">C:\ai-invoice\tls</code> for IIS/nginx.</li>
+              <li>Update your service or scheduled task to reload environment variables after staging.</li>
+            </ul>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };

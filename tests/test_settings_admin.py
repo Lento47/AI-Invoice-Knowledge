@@ -63,7 +63,6 @@ def test_admin_endpoints_apply_updates(tmp_path: Path, monkeypatch: pytest.Monke
     ]
     updated_model.license_algorithm = "RS512"
     updated_model.admin_api_key = "rotated-admin"
-
     result = admin.update_settings(updated_model)
     assert result.values.max_upload_bytes == 654321
     assert result.values.admin_api_key == "rotated-admin"
@@ -84,8 +83,6 @@ def test_admin_endpoints_apply_updates(tmp_path: Path, monkeypatch: pytest.Monke
     monkeypatch.delenv("AI_INVOICE_SETTINGS_PATH", raising=False)
     monkeypatch.setenv("AI_API_KEY", "pytest-default-key")
     config.reload_settings()
-
-
 def test_predictive_path_update_reflected_in_model(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
