@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -49,6 +49,8 @@ configure_middleware(app)
 _BASE_DIR = Path(__file__).resolve().parent
 _TEMPLATE_DIR = _BASE_DIR / "templates"
 _STATIC_DIR = _BASE_DIR / "static"
+_CONSOLE_STATIC_DIR = _STATIC_DIR / "console"
+_CONSOLE_INDEX = _CONSOLE_STATIC_DIR / "index.html"
 
 _TEMPLATES = Jinja2Templates(directory=str(_TEMPLATE_DIR))
 
@@ -70,6 +72,21 @@ if _STATIC_FILES is not None:
 else:  # pragma: no cover - only exercised when static assets are missing
     STARTUP_LOGGER.warning("Continuing without /static mount; static assets not found")
 
+if _CONSOLE_INDEX.is_file():
+    app.mount(
+        "/portal",
+        StaticFiles(directory=str(_CONSOLE_STATIC_DIR), html=True),
+        name="react-portal",
+    )
+
+    @app.get("/portal", include_in_schema=False)
+    def react_portal_root() -> FileResponse:  # pragma: no cover - simple file response
+        """Serve the compiled React console entry point."""
+
+        return FileResponse(_CONSOLE_INDEX)
+else:
+    STARTUP_LOGGER.info("React console build not found; serving legacy portal at /portal")
+
 app.include_router(health.router)
 app.include_router(invoices.router)
 app.include_router(models.router)
@@ -88,9 +105,18 @@ def admin_portal(request: Request) -> HTMLResponse:
     return _TEMPLATES.TemplateResponse(request, "admin.html", {"request": request})
 
 
-@app.get("/portal", response_class=HTMLResponse)
-def invoice_portal(request: Request) -> HTMLResponse:
-    """Render the interactive workspace for invoice operations."""
+if not _CONSOLE_INDEX.is_file():
+
+    @app.get("/portal", response_class=HTMLResponse)
+    def invoice_portal(request: Request) -> HTMLResponse:
+        """Render the interactive workspace for invoice operations."""
+
+        return _TEMPLATES.TemplateResponse(request, "invoice_portal.html", {"request": request})
+
+
+@app.get("/portal/legacy", response_class=HTMLResponse)
+def invoice_portal_legacy(request: Request) -> HTMLResponse:
+    """Expose the prior Jinja portal for backwards compatibility."""
 
     return _TEMPLATES.TemplateResponse(request, "invoice_portal.html", {"request": request})
 

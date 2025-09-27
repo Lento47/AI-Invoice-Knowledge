@@ -7,3 +7,5 @@ dist/
 ai_invoice_api*
 *.joblib
 !models/*.joblib
+node_modules/
+src/api/static/console/
