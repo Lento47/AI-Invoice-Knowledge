@@ -86,7 +86,9 @@ This repository contains a cross-platform AI service (Python/FastAPI) and Window
    curl -H "X-API-Key: $AI_API_KEY" -H "Content-Type: application/json" -d '{"features":{"amount":950,"customer_age_days":400,"prior_invoices":12,"late_ratio":0.2,"weekday":2,"month":9}}' http://localhost:8088/predict
 ````
 
-5. Open the interactive portal at http://localhost:8088/portal to upload invoices, classify text, and score predictions from the browser. This page (and other static assets such as `/static/...` and `/admin`) is now publicly readable, so you can load the UI without sending an API key; individual actions still prompt for credentials when required. If your build includes the customs module, you can also export Costa Rica TICA-compliant PDFs. The UI surfaces validation errors (401/403/413) directly and can optionally remember your API key/license token. See docs/invoice_portal.md for a guided tour of each workflow.
+5. Build the React console (optional during development, required for production) by running `cd apps/ui && npm install && npm run build`. Once a bundle exists under `src/api/static/console/`, start FastAPI and browse to http://localhost:8088/portal to explore the new Aurora-themed dashboard. If the bundle is missing, FastAPI logs a message and serves the legacy Jinja console at `/portal` (still available explicitly at `/portal/legacy`).
+
+   During local development you can also run the Vite dev server via `npm run dev` from `apps/ui` and interact with the UI at http://localhost:5173 while the backend runs separately.
 
 
 6. (Optional) Interact with the classifier management endpoints:
