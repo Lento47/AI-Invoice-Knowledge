@@ -136,6 +136,24 @@
           </div>
 
           <div class="form-section">
+            <h3>Transport security</h3>
+            <div class="form-grid">
+              <div class="form-row" data-field="tls_certfile_path">
+                <label for="tls_certfile_path">TLS certificate path</label>
+                <input type="text" id="tls_certfile_path" class="text-input" />
+                <p class="hint">Absolute path to the PEM certificate served by uvicorn (ssl_certfile).</p>
+                <p class="override-note hidden" data-override="tls_certfile_path">Environment override active.</p>
+              </div>
+              <div class="form-row" data-field="tls_keyfile_path">
+                <label for="tls_keyfile_path">TLS private key path</label>
+                <input type="text" id="tls_keyfile_path" class="text-input" />
+                <p class="hint">Absolute path to the PEM private key paired with the certificate.</p>
+                <p class="override-note hidden" data-override="tls_keyfile_path">Environment override active.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
             <h3>Request validation</h3>
             <div class="form-grid">
               <div class="form-row" data-field="max_upload_bytes">

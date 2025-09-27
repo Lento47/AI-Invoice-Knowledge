@@ -210,6 +210,10 @@ class Settings:
     license_revoked_jtis: frozenset[str] = field(default_factory=frozenset)
     license_revoked_subjects: frozenset[str] = field(default_factory=frozenset)
 
+    # Transport security
+    tls_certfile_path: Optional[str] = None
+    tls_keyfile_path: Optional[str] = None
+
     # Request validation
     max_upload_bytes: int = 5 * 1024 * 1024
     max_text_length: int = 20_000
@@ -234,6 +238,14 @@ class Settings:
 
         self.license_public_key_path = _normalize_optional_str(self.license_public_key_path)
         self.license_public_key = _normalize_optional_str(self.license_public_key)
+
+        self.tls_certfile_path = _normalize_optional_str(self.tls_certfile_path)
+        self.tls_keyfile_path = _normalize_optional_str(self.tls_keyfile_path)
+
+        if bool(self.tls_certfile_path) ^ bool(self.tls_keyfile_path):
+            raise ValueError(
+                "TLS configuration requires both tls_certfile_path and tls_keyfile_path or neither."
+            )
 
         self.license_revoked_jtis = frozenset(_normalize_str_collection(self.license_revoked_jtis))
         self.license_revoked_subjects = frozenset(
@@ -380,6 +392,18 @@ def _collect_env_overrides(base: dict[str, Any]) -> tuple[dict[str, Any], set[st
             os.getenv("LICENSE_PUBLIC_KEY")
         )
         override_fields.add("license_public_key")
+
+    if "TLS_CERTFILE_PATH" in os.environ:
+        overrides["tls_certfile_path"] = _normalize_optional_str(
+            os.getenv("TLS_CERTFILE_PATH")
+        )
+        override_fields.add("tls_certfile_path")
+
+    if "TLS_KEYFILE_PATH" in os.environ:
+        overrides["tls_keyfile_path"] = _normalize_optional_str(
+            os.getenv("TLS_KEYFILE_PATH")
+        )
+        override_fields.add("tls_keyfile_path")
 
     if "LICENSE_ALGORITHM" in os.environ:
         overrides["license_algorithm"] = os.getenv("LICENSE_ALGORITHM")

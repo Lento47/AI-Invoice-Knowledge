@@ -53,6 +53,14 @@ class SettingsDocument(BaseModel):
     license_algorithm: str = Field("RS256", min_length=2)
     license_revoked_jtis: list[str] = Field(default_factory=list)
     license_revoked_subjects: list[str] = Field(default_factory=list)
+    tls_certfile_path: str | None = Field(
+        default=None,
+        description="Path to a PEM certificate used for HTTPS termination when running uvicorn directly",
+    )
+    tls_keyfile_path: str | None = Field(
+        default=None,
+        description="Path to the private key that matches tls_certfile_path",
+    )
     max_upload_bytes: int = Field(..., ge=0)
     max_text_length: int = Field(..., ge=0)
     max_feature_fields: int = Field(..., ge=0)

@@ -63,10 +63,14 @@ def test_admin_endpoints_apply_updates(tmp_path: Path, monkeypatch: pytest.Monke
     ]
     updated_model.license_algorithm = "RS512"
     updated_model.admin_api_key = "rotated-admin"
+    updated_model.tls_certfile_path = "/tmp/test-cert.pem"
+    updated_model.tls_keyfile_path = "/tmp/test-key.pem"
 
     result = admin.update_settings(updated_model)
     assert result.values.max_upload_bytes == 654321
     assert result.values.admin_api_key == "rotated-admin"
+    assert result.values.tls_certfile_path == "/tmp/test-cert.pem"
+    assert result.values.tls_keyfile_path == "/tmp/test-key.pem"
 
     # Old token should no longer be accepted
     with pytest.raises(HTTPException):
@@ -79,11 +83,26 @@ def test_admin_endpoints_apply_updates(tmp_path: Path, monkeypatch: pytest.Monke
     persisted = json.loads(store_path.read_text(encoding="utf-8"))
     assert persisted["max_upload_bytes"] == 654321
     assert persisted["admin_api_key"] == "rotated-admin"
+    assert persisted["tls_certfile_path"] == "/tmp/test-cert.pem"
+    assert persisted["tls_keyfile_path"] == "/tmp/test-key.pem"
 
     # Reset to shared defaults so other tests see expected values
     monkeypatch.delenv("AI_INVOICE_SETTINGS_PATH", raising=False)
     monkeypatch.setenv("AI_API_KEY", "pytest-default-key")
     config.reload_settings()
+
+
+def test_settings_tls_pairing_requirement() -> None:
+    with pytest.raises(ValueError):
+        config.Settings(api_key="unit", tls_certfile_path="/tmp/server.crt")
+
+    instance = config.Settings(
+        api_key="unit",
+        tls_certfile_path="/tmp/server.crt",
+        tls_keyfile_path="/tmp/server.key",
+    )
+    assert instance.tls_certfile_path == "/tmp/server.crt"
+    assert instance.tls_keyfile_path == "/tmp/server.key"
 
 
 def test_predictive_path_update_reflected_in_model(

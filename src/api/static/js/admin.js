@@ -185,6 +185,8 @@ function populateForm(values) {
   document.getElementById("license_algorithm").value = values.license_algorithm || "";
   document.getElementById("license_revoked_jtis").value = (values.license_revoked_jtis || []).join("\n");
   document.getElementById("license_revoked_subjects").value = (values.license_revoked_subjects || []).join("\n");
+  document.getElementById("tls_certfile_path").value = values.tls_certfile_path || "";
+  document.getElementById("tls_keyfile_path").value = values.tls_keyfile_path || "";
   document.getElementById("max_upload_bytes").value = values.max_upload_bytes ?? "";
   document.getElementById("max_text_length").value = values.max_text_length ?? "";
   document.getElementById("max_feature_fields").value = values.max_feature_fields ?? "";
@@ -224,6 +226,20 @@ function buildPayload() {
     license_revoked_jtis: parseList("license_revoked_jtis"),
     license_revoked_subjects: parseList("license_revoked_subjects"),
   };
+
+  const tlsCertPath = document.getElementById("tls_certfile_path").value.trim();
+  const tlsKeyPath = document.getElementById("tls_keyfile_path").value.trim();
+
+  if ((tlsCertPath && !tlsKeyPath) || (!tlsCertPath && tlsKeyPath)) {
+    markFieldError(
+      tlsCertPath ? "tls_keyfile_path" : "tls_certfile_path",
+      "Provide both TLS certificate and private key paths to enable HTTPS.",
+    );
+    failed = true;
+  }
+
+  payload.tls_certfile_path = tlsCertPath || null;
+  payload.tls_keyfile_path = tlsKeyPath || null;
 
   if (!payload.license_algorithm) {
     markFieldError("license_algorithm", "License algorithm is required.");
