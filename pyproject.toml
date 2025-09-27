@@ -43,3 +43,8 @@ where = ["src"]
   "templates/**/*.html",
   "static/**/*",
 ]
+
+[tool.setuptools.entry-points]
+console_scripts = [
+  "invoiceai=ai_invoice.cli:main",
+]
