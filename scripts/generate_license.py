@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """CLI tool for generating signed license artifacts."""
-
 from __future__ import annotations
 
 import argparse
-import base64
 import json
-import subprocess
 import sys
-import tempfile
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,11 +15,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 if SRC_DIR.exists():
     sys.path.insert(0, str(SRC_DIR))
 
-from ai_invoice.license import canonicalize_payload, encode_license_token
-
-
-def _isoformat(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+from ai_invoice.license_generator import generate_license_artifact
 
 
 def _parse_datetime(value: str, *, field: str, end_of_day: bool = False) -> datetime:
@@ -104,46 +96,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _sign_payload(private_key: Path, payload: bytes, password_file: Path | None) -> bytes:
-    with tempfile.NamedTemporaryFile(delete=False) as payload_file:
-        payload_file.write(payload)
-        payload_path = Path(payload_file.name)
-    signature_path = Path(tempfile.NamedTemporaryFile(delete=False).name)
-
-    cmd = [
-        "openssl",
-        "pkeyutl",
-        "-sign",
-        "-inkey",
-        str(private_key),
-        "-rawin",
-        "-in",
-        str(payload_path),
-        "-out",
-        str(signature_path),
-    ]
-    if password_file is not None:
-        cmd.extend(["-passin", f"file:{password_file}"])
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-    except FileNotFoundError as exc:  # pragma: no cover - defensive
-        payload_path.unlink(missing_ok=True)
-        signature_path.unlink(missing_ok=True)
-        raise SystemExit("OpenSSL executable is required to sign licenses.") from exc
-
-    payload_path.unlink(missing_ok=True)
-    if result.returncode != 0:
-        signature_path.unlink(missing_ok=True)
-        detail = (result.stderr or result.stdout or "").strip()
-        message = f"License signing failed via OpenSSL ({detail})." if detail else "License signing failed via OpenSSL."
-        raise SystemExit(message)
-
-    signature = signature_path.read_bytes()
-    signature_path.unlink(missing_ok=True)
-    return signature
-
-
 def build_payload(args: argparse.Namespace, *, issued_at: datetime, expires_at: datetime) -> dict[str, Any]:
     tenant: dict[str, Any] = {"id": args.tenant_id}
     if args.tenant_name:
@@ -155,8 +107,8 @@ def build_payload(args: argparse.Namespace, *, issued_at: datetime, expires_at: 
     payload: dict[str, Any] = {
         "tenant": tenant,
         "features": _clean_features(args.feature),
-        "issued_at": _isoformat(issued_at),
-        "expires_at": _isoformat(expires_at),
+        "issued_at": issued_at,
+        "expires_at": expires_at,
         "token_id": str(uuid.uuid4()),
     }
     if args.device:
@@ -180,16 +132,26 @@ def main() -> None:
         raise SystemExit(f"Password file not found: {args.password_file}")
 
     payload = build_payload(args, issued_at=issued_at, expires_at=expires_at)
-    payload_bytes = canonicalize_payload(payload)
-    signature = _sign_payload(args.private_key, payload_bytes, args.password_file)
-    artifact = {
-        "version": 1,
-        "algorithm": "ed25519",
-        "payload": payload,
-        "signature": base64.urlsafe_b64encode(signature).decode("utf-8"),
-    }
+    artifact, token = generate_license_artifact(
+        private_key=args.private_key,
+        password_file=args.password_file,
+        tenant=payload["tenant"],
+        features=payload.get("features", []),
+        issued_at=payload["issued_at"],
+        expires_at=payload["expires_at"],
+        device=payload.get("device"),
+        key_id=payload.get("key_id"),
+        token_id=payload["token_id"],
+    )
 
-    token = encode_license_token(artifact)
+    # generate_license_artifact returns only the tenant payload; reapply any
+    # metadata that is not part of the canonical payload structure
+    artifact["payload"].update(
+        {
+            "features": payload.get("features", []),
+            "tenant": payload["tenant"],
+        }
+    )
     output_data: Any
     if args.token_only:
         output_data = token
